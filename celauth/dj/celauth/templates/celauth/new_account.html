@@ -1,0 +1,24 @@
+<html>
+<body>
+
+<p>No account has email addresses:</p>
+<ul>
+{{ addresses | unordered_list }}
+</ul>
+<p>Create a new account:</p>
+<form action="{% url 'celauth:create_account' %}" method="post">
+<input type="submit" value="Create new account" />
+{% if next_url %}
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+{% endif %}
+{% csrf_token %}
+</form>
+
+<p>Or, cancel creating a new account.</p>
+<form action="{% url 'celauth:logout' %}" method="post">
+<input type="submit" value="Cancel" />
+{% csrf_token %}
+</form>
+
+</body>
+</html>

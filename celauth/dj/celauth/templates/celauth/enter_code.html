@@ -1,0 +1,15 @@
+<html>
+<body>
+
+<h2>Enter your email confirmation code:</h2>
+<form action="{% url 'celauth:confirm_email' '' %}" method="post">
+{{ fields }}
+<input type="submit" value="Submit" />
+{% if next_url %}
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+{% endif %}
+{% csrf_token %}
+</form>
+
+</body>
+</html>

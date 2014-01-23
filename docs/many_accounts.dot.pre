@@ -1,0 +1,26 @@
+#include "celauth.dot.h"
+
+graph {
+  rankdir=TB;
+
+  subgraph cluster_account1 {
+    ACCOUNT_LOOK;
+    label="Account 1";
+    loginidZ;
+    emailA [shape=box];
+  }
+  subgraph cluster_account2 {
+    ACCOUNT_LOOK;
+    label="Account 2";
+    loginidY;
+    emailB [shape=box];
+  }
+  loginidX;
+  emailC [shape=box];
+
+  loginidZ -- emailA [CONFIRMED_LOOK];
+  loginidZ -- emailB [INCREDIBLE_LOOK];
+  loginidY -- emailB [CREDIBLE_LOOK];
+  loginidX -- emailC [INCREDIBLE_LOOK];
+
+}

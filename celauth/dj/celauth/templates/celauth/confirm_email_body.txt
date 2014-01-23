@@ -1,0 +1,5 @@
+{% if url %}Please confirm your email by visiting:
+{{ url }}
+{% endif %}
+Your confirmation code is:
+{{ code }}
