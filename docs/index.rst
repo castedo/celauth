@@ -58,6 +58,7 @@ Other Libraries
 Other OpenID related Python libraries worth mentioning:
 
 * https://github.com/openid/python-openid (used by ``celauth``)
+* https://github.com/pennersr/django-allauth
 * https://launchpad.net/django-openid-auth
 * https://github.com/omab/python-social-auth
 * http://code.google.com/p/django-openid-consumer/

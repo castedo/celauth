@@ -33,6 +33,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'celauth.dj.celauth',
+    'miniauth',
     'south',
 )
 
@@ -81,7 +82,7 @@ SESSION_SERIALIZER='django.contrib.sessions.serializers.PickleSerializer'
 LOGIN_URL = '/openid/login'
 LOGIN_REDIRECT_URL = '/openid/'
 
-CEL_ACCOUNTANT = 'celauth.TrivialAccountant'
+CEL_ACCOUNTANT = 'miniauth.Accountant'
 CEL_SESSION_STORE = 'celauth.dj.celauth.DjangoCelSessionStore'
 
 CONFIRM_EMAIL_FROM = 'noreply@example.com'

@@ -14,9 +14,6 @@ def active_staff_required(function):
     return user_passes_test(ensure_is_active_staff)(function)
 
 class DjangoUserManager():
-    def __init__(self, request):
-        self.request = request
-
     def assigned_account(self, email_address):
         UserModel = django.contrib.auth.get_user_model()
         try:

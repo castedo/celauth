@@ -22,7 +22,7 @@ assert REDIRECT_FIELD_NAME != LOGIN_BUTTON_NAME
 
 def get_auth_gate(request):
     AccountManager = import_by_path(settings.CEL_ACCOUNTANT)
-    accounts = AccountManager(request)
+    accounts = AccountManager()
     mailer = Mailer(request, 'celauth:confirm_email')
     SessionStore = import_by_path(settings.CEL_SESSION_STORE)
     return AuthGate(DjangoCelRegistry(accounts), SessionStore(request), mailer)
