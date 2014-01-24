@@ -64,7 +64,7 @@ class DjangoCelRegistry(CelRegistryBase):
         claims = EmailClaim.objects.filter(openid=loginid)
         return [c.email.address for c in claims]
 
-    def addresses_pending(self, loginid):
+    def addresses_not_confirmed(self, loginid):
         claims = EmailClaim.objects.filter(openid=loginid, confirmed=False)
         return set([c.email.address for c in claims])
 

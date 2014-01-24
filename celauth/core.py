@@ -43,7 +43,7 @@ class CelRegistry(object):
     def _addresses_pending(self, loginids):
         ret = set()
         for lid in loginids:
-            ret |= set(self._registry.addresses_pending(lid))
+            ret |= set(self._registry.addresses_not_confirmed(lid))
         return list(ret)
 
     def _addresses_confirmed(self, loginids):
@@ -79,6 +79,11 @@ class AuthGate(CelRegistry):
     def addresses_confirmed(self):
         return self._addresses_confirmed(self._loginids)
 
+    def addresses_taken(self):
+        r = self._registry
+        credibles = r.addresses_credible(self.loginid)
+        return [a for a in credibles if not r.is_free_address(a)]
+
     def logout(self):
         self._session.clear()
 
@@ -94,7 +99,7 @@ class AuthGate(CelRegistry):
 
     def confirmation_required(self):
         registry = self._registry
-        for a in registry.addresses_pending(self.loginid):
+        for a in registry.addresses_not_confirmed(self.loginid):
             if registry.assigned_account(a):
                 return True
         return registry.has_incredible_claims(self.loginid)
@@ -122,9 +127,8 @@ class AuthGate(CelRegistry):
         if self.account or not self.loginid:
             return False
         registry = self._registry
-        for addr in registry.addresses_credible(self.loginid):
-            if not registry.is_free_address(addr):
-                return False
+        if self.addresses_taken():
+            return False
         if registry.has_incredible_claims(self.loginid):
             return False
         return bool(registry.addresses_credible(self.loginid))
