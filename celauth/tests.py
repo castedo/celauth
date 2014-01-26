@@ -73,11 +73,11 @@ class TestCelRegistry(CelRegistryBase):
 
     def note_openid(self, openid_case):
         loginid = openid_case.claimed_id
-        self.loginid2account[loginid] = None
+        self.loginid2account.setdefault(loginid, None)
         return loginid
 
-    def claim(self, loginid, email_address, credible):
-        address = self._normalize_email(email_address)
+    def claim(self, loginid, address, credible):
+        assert address == self._normalize_email(address)
         self.claims.add((loginid, address))
         if credible:
             self.credibles.add((loginid, address))
@@ -153,7 +153,7 @@ class CelTestCase(unittest.TestCase):
         self.gate = AuthGate(self.registry, self.session, FakeMailer())
 
     def login_as(self, loginid):
-        self.gate.new_auth(loginid)
+        self.gate.login(loginid)
         self.assertTrue(self.gate.loginid)
 
     def new_account(self, loginid):
@@ -253,11 +253,10 @@ class ExistingAccountTests(CelTestCase):
         self.assertFalse(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
         self.assertTrue(self.gate.addresses_joinable())
-        #TODO
-        #self.assertEqual(self.registry.loginid2account, {
-        #    'https://example.com/me': 1,
-        #    'https://example.com/me2': None,
-        #})
+        self.assertEqual(self.registry.loginid2account, {
+            'https://example.com/me': 1,
+            'https://example.com/me2': None,
+        })
         self.login_as(openid('com', 'me'))
         #TODO
         #self.assertEqual(self.registry.loginid2account, {

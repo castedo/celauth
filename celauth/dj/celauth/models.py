@@ -138,11 +138,10 @@ class DjangoCelRegistry(CelRegistryBase):
         return email.account
 
     def add_address(self, account, address):
-        email = self._get_email_address(address)
-        if not email.account:
-            email.account = account
-            return True
-        return False
+        qset = EmailAddress.objects.filter(pk=address, account=None)
+        num_rows = qset.update(account=account)
+        assert num_rows < 2
+        return num_rows > 0
 
     def remove_address(self, account, address):
         email = self._get_email_address(address)

@@ -18,17 +18,35 @@ class AccountAlreadyExists(AuthError):
     def __init__(self):
         AuthError.__init__(self, "Account already exists")
 
+class InvalidConfirmationCode(AuthError):
+    def __init__(self):
+        AuthError.__init__(self, "Invalid email confirmation code")
+
+class AddressAccountConflict(AuthError):
+    def __init__(self):
+        AuthError.__init__(self, "Email address assigned to different account")
+
 
 class CelRegistry(object):
     def __init__(self, registry_store, mailer):
         self._registry = registry_store
         self._mailer = mailer
 
+    @classmethod
+    def _normalize_email(cls, email):
+        if email:
+            try:
+                email_name, domain_part = email.strip().rsplit('@', 1)
+            except ValueError:
+                pass
+            else:
+                email = '@'.join([email_name, domain_part.lower()])
+        return email
+
     def _make_claim(self, loginid, email_address, credible):
         self._registry.claim(loginid, email_address, credible)
         # os.urandom(5) will produce about 1 trillion possibilities
         code = b32encode(os.urandom(5))
-        #TODO make expiration time configurable
         self._registry.save_confirmation_code(code, email_address)
         #TODO if already confirmed, send email to that effect
         #TODO catch any user conflict exception and send email to that effect
@@ -96,18 +114,22 @@ class AuthGate(CelRegistry):
             for a in self._registry.addresses_not_confirmed(lid):
                 self._registry.disclaim(lid, a)
 
-    def logout(self):
-        self._session.clear()
-
     def new_auth(self, openid_case):
+        self.login(openid_case)
+
+    def login(self, openid_case):
         openid = self._registry.note_openid(openid_case)
-        address = openid_case.email
+        address = self._normalize_email(openid_case.email)
         if address and address not in self.addresses():
             self._make_claim(openid, address, openid_case.credible)
         self._session.set_loginid(openid)
 
+    def logout(self):
+        self._session.clear()
+
     def claim(self, email_address):
-        self._make_claim(self.loginid, email_address, False)
+        address = self._normalize_email(email_address)
+        self._make_claim(self.loginid, address, False)
 
     def confirmation_required(self):
         registry = self._registry
@@ -121,13 +143,11 @@ class AuthGate(CelRegistry):
         session = self._session
         address = registry.confirm_email(self.loginid, code)
         if not address:
-            #TODO throw exception instead
-            return False
+            raise InvalidConfirmationCode
         account = registry.account(self.loginid)
         if account:
             if not registry.add_address(account, address):
-                return False
-            #TODO report non-confirmation differently than non-granting
+                raise AddressAccountConflict
         else:
             account = registry.assigned_account(address)
             if account:
