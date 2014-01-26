@@ -41,23 +41,25 @@ def default_view(request):
 
 @require_http_methods(["GET", "POST"])
 def login(request):
-    auth = get_auth_gate(request)
-    return login_response(request, auth)
+    return login_response(request, get_auth_gate(request))
 
-def login_response(request, auth):
-    if not auth.loginid:
+def login_response(request, gate):
+    if not gate.loginid:
         return choose_openid_response(request)
 
-    if not auth.addresses():
-        return enter_address(request)
+    if not gate.addresses():
+        return enter_address_response(request, gate)
 
-    if auth.confirmation_required():
-        return enter_code_response(request, auth)
+    if gate.confirmation_required():
+        return enter_code_response(request, gate)
 
-    if not auth.account:
-        assert auth.can_create_account()
+    if gate.addresses_joinable():
+        return join_account_response(request, gate)
+
+    if not gate.account:
+        assert gate.can_create_account()
         vals = {
-            'addresses': auth.addresses(),
+            'addresses': gate.addresses(),
             'next_name': REDIRECT_FIELD_NAME,
             'next_url': request.REQUEST.get(REDIRECT_FIELD_NAME, None),
         }
@@ -102,6 +104,10 @@ def choose_openid_response(request):
         'next_url': final_url,
     }
     return render(request, 'celauth/login.html', vals)
+
+def join_account_response(request, gate):
+    #TODO communicate to user than login is for joining
+    return choose_openid_response(request)
 
 def initial_response(request, openid_url, final_url):
     try:
@@ -149,9 +155,12 @@ class EnterAddressForm(forms.Form):
 
 @require_http_methods(["GET", "POST"])
 def enter_address(request):
-    auth = get_auth_gate(request)
-    if request.method == 'POST':
-        form = EnterAddressForm(request.POST)
+    post_data = request.POST if request.method == 'POST' else None
+    return enter_address_response(request, get_auth_gate(request), post_data)
+
+def enter_address_response(request, gate, post_data = None):
+    if post_data:
+        form = EnterAddressForm(post_data)
     else:
         form = EnterAddressForm()
     if not form.is_valid():
@@ -165,7 +174,6 @@ def enter_address(request):
     address = form.cleaned_data['address']
     auth.claim(address)
     return enter_code_response(request, auth)
-
 
 @require_http_methods(["GET", "POST"])
 def confirm_email(request, confirmation_code):
@@ -182,7 +190,7 @@ def confirm_email(request, confirmation_code):
 class EnterCodeForm(forms.Form):
     code = forms.CharField(required=True, label='Confirmation code')
 
-def enter_code_response(request, auth, invalid_confirmation_code=None):
+def enter_code_response(request, gate, invalid_confirmation_code=None):
     if invalid_confirmation_code:
         form = EnterCodeForm({'code': invalid_confirmation_code})
         form.errors['code'] = ["invalid or expired"]
@@ -190,10 +198,18 @@ def enter_code_response(request, auth, invalid_confirmation_code=None):
         form = EnterCodeForm()
     vals = {
         'fields': form,
+        'addresses_pending': list(gate.addresses_pending()),
         'next_name': REDIRECT_FIELD_NAME,
         'next_url': request.REQUEST.get(REDIRECT_FIELD_NAME, None),
     }
     return render(request, 'celauth/enter_code.html', vals)
+
+
+@require_http_methods(["POST"])
+def disclaim(request):
+    gate = get_auth_gate(request)
+    gate.disclaim_pending()
+    return login_response(request, gate)
 
 
 @require_http_methods(["POST"])

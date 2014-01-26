@@ -65,6 +65,7 @@ class BasicTest(CelauthTestCase):
     def test_confirmation(self):
         response = self.login_as('org', 'dude', 'dude', '/there')
         self.assertContains(response, "confirmation code")
+        self.assertContains(response, "dude@example.org")
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].subject, 'Confirmation Code')
 
@@ -82,4 +83,12 @@ class BasicTest(CelauthTestCase):
         self.assertContains(response, "dude@example.org")
 
         self.logout()
+
+    def test_email_disclaim(self):
+        response = self.login_as('org', 'dude', 'bad', '/there')
+        self.assertContains(response, "confirmation code")
+        self.assertContains(response, "bad@example.org")
+
+        response = self.client.post(reverse('celauth:disclaim'))
+        self.assertContains(response, "Enter your email address")
 

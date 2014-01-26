@@ -8,6 +8,7 @@ urlpatterns = patterns('',
     url(r'^create_account$', views.create_account, name='create_account'),
     url(r'^enter_address$', views.enter_address, name='enter_address'),
     url(r'^confirm_email/(\w*)$', views.confirm_email, name='confirm_email'),
+    url(r'^disclaim$', views.disclaim, name='disclaim'),
     url(r'^logout$', views.logout, name='logout'),
 )
 

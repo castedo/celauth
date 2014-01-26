@@ -76,11 +76,18 @@ class TestCelRegistry(CelRegistryBase):
         self.loginid2account[loginid] = None
         return loginid
 
-    def make_claim(self, loginid, email_address, credible):
+    def claim(self, loginid, email_address, credible):
         address = self._normalize_email(email_address)
         self.claims.add((loginid, address))
         if credible:
             self.credibles.add((loginid, address))
+
+    def disclaim(self, loginid, email_address):
+        address = self._normalize_email(email_address)
+        claim = (loginid, address)
+        self.confirms.discard(claim)
+        self.credibles.discard(claim)
+        self.claims.discard(claim)
 
     def save_confirmation_code(self, code, email_address):
         address = self._normalize_email(email_address)
@@ -108,6 +115,10 @@ class TestCelRegistry(CelRegistryBase):
             return False
         self.address2account[address] = account
         return True
+
+    def remove_address(self, account, address):
+        if address == self.address2account.get(account, None):
+            del self.address2account[account]
 
     def set_account(self, loginid, account):
         self.loginid2account[loginid] = account
@@ -172,6 +183,19 @@ class NewAcountTests(unittest.TestCase):
         self.assertEqual(gate.addresses_confirmed(), ['joe@example.org'])
         self.assertEqual(self.registry.loginid2account, {'http://example.org/joe':1})
         self.assertEqual(self.registry.address2account, {'joe@example.org':1})
+
+    def test_email_dislclaim(self):
+        gate = self.gate
+        self.assertFalse(gate.loginid)
+        gate.new_auth(id('org', 'joe'))
+        self.assertTrue(gate.loginid)
+        self.assertFalse(gate.account)
+        self.assertTrue(gate.addresses())
+        self.assertTrue(gate.confirmation_required())
+        self.assertFalse(gate.can_create_account())
+        self.assertTrue(FakeMailer.last_code)
+        gate.disclaim_pending()
+        self.assertFalse(gate.addresses())
 
 class AssignedAccountTests(unittest.TestCase):
     def setUp(self):

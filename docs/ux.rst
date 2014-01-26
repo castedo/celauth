@@ -9,24 +9,27 @@ are show together or at what stages.
 .. graphviz::
 
    digraph {
-      rankdir=LR;
+      rankdir=TB;
       login [label="Log In"];
       {
         rank=same;
         enter_email [label="Enter\nAddress"];
         confirm_email [label="Confirm\nEmail"];
         create_account [label="Create\nAccount"];
+        join_account [label="Join\nAccount"];
       }
       account_access [label="Account\nAccessed"];
-      login -> enter_email [label="M"];
-      login -> confirm_email [label="N"];
-      login -> create_account [label="C"];
+      login -> enter_email [label="M", labeldistance=-80];
+      login -> confirm_email;
+      login -> create_account;
+      login -> join_account;
       login -> account_access;
       // there seems to be a graphviz bug requiring dir=back
-      enter_email -> confirm_email [label="N", dir=back];
+      enter_email -> confirm_email;
       confirm_email -> create_account;
       confirm_email -> account_access [label="A"];
       create_account -> account_access;
+      join_account -> account_access;
    }
 
 Key:
@@ -34,9 +37,7 @@ Key:
 === =================
 === =================
  M   OpenID login is missing email address
- C   Email address from credible identity provider
- N   Email address not from credible identify provider
- A   Account "pre-assigned" to email address
+ A   Account already assigned to email address
 === =================
 
 

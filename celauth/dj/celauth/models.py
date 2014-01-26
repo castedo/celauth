@@ -91,13 +91,19 @@ class DjangoCelRegistry(CelRegistryBase):
                                     display_id = openid_case.display_id)
         return ret
 
-    def make_claim(self, loginid, email_address, credible):
+    def claim(self, loginid, email_address, credible):
         assert loginid
         email = self._get_email_address(email_address)
         claim = self._get_claim(loginid, email)
         if credible:
             claim.credible = True 
             claim.save()
+
+    def disclaim(self, loginid, email_address):
+        assert loginid
+        email = self._get_email_address(email_address)
+        claim = self._get_claim(loginid, email)
+        claim.delete()
 
     def save_confirmation_code(self, code, email_address):
         expire = datetime.utcnow() + timedelta(hours=12)
@@ -134,6 +140,11 @@ class DjangoCelRegistry(CelRegistryBase):
             email.account = account
             return True
         return False
+
+    def remove_address(self, account, address):
+        email = self._get_email_address(address)
+        if account == email.account:
+            email.account = None
 
     def set_account(self, loginid, account):
         loginid.account = account

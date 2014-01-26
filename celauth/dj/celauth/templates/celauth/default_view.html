@@ -17,10 +17,20 @@
 {% endif %}
 
 {% if addresses_pending %}
+
 <h2>Email addressess pending confirmation</h2>
 <ul>
 {{ addresses_pending | unordered_list }}
 </ul>
+
+<form action="{% url 'celauth:disclaim' %}" method="post">
+<input type="submit" value="Cancel pending addresses" />
+{% if next_url %}
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+{% endif %}
+{% csrf_token %}
+</form>
+
 {% endif %}
 
 {% if addresses_confirmed %}

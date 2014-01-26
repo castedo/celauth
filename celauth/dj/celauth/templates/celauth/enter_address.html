@@ -11,5 +11,15 @@
 {% csrf_token %}
 </form>
 
+<h2>Or, cancel registration</h2>
+
+<form action="{% url 'celauth:logout' %}" method="post">
+<input type="submit" value="Cancel registration" />
+{% if next_url %}
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+{% endif %}
+{% csrf_token %}
+</form>
+
 </body>
 </html>

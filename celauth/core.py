@@ -25,7 +25,7 @@ class CelRegistry(object):
         self._mailer = mailer
 
     def _make_claim(self, loginid, email_address, credible):
-        self._registry.make_claim(loginid, email_address, credible)
+        self._registry.claim(loginid, email_address, credible)
         # os.urandom(5) will produce about 1 trillion possibilities
         code = b32encode(os.urandom(5))
         #TODO make expiration time configurable
@@ -44,6 +44,7 @@ class CelRegistry(object):
         ret = set()
         for lid in loginids:
             ret |= set(self._registry.addresses_not_confirmed(lid))
+        #TODO fix bug: should return addresss not confirmed by all loginids, not any one loginid
         return list(ret)
 
     def _addresses_confirmed(self, loginids):
@@ -79,10 +80,21 @@ class AuthGate(CelRegistry):
     def addresses_confirmed(self):
         return self._addresses_confirmed(self._loginids)
 
-    def addresses_taken(self):
+    def addresses_joinable(self):
+        if self.account:
+            return []
         r = self._registry
         credibles = r.addresses_credible(self.loginid)
         return [a for a in credibles if not r.is_free_address(a)]
+
+    def disclaim_pending(self):
+        if self.account:
+            for a in self._addresses_pending():
+                self._registry.remove_address(self.account, a)
+            self._registry.remove_address(self.account, a)
+        for lid in self._loginids:
+            for a in self._registry.addresses_not_confirmed(lid):
+                self._registry.disclaim(lid, a)
 
     def logout(self):
         self._session.clear()
@@ -127,7 +139,7 @@ class AuthGate(CelRegistry):
         if self.account or not self.loginid:
             return False
         registry = self._registry
-        if self.addresses_taken():
+        if self.addresses_joinable():
             return False
         if registry.has_incredible_claims(self.loginid):
             return False
