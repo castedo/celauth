@@ -14,9 +14,9 @@
 {% csrf_token %}
 </form>
 
-<p>Or, cancel creating a new account.</p>
+<p>Or, cancel creating a new account and log out.</p>
 <form action="{% url 'celauth:logout' %}" method="post">
-<input type="submit" value="Cancel" />
+<input type="submit" value="Log out" />
 {% csrf_token %}
 </form>
 

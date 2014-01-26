@@ -8,28 +8,9 @@
 {% if next_url %}
 <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
 {% endif %}
-{% if openid_fields %}
-<div id="login_any_openid">
-<fieldset>
-  <legend>Using any OpenID</legend>
-  {{ openid_fields }}
-  <input type="submit" name="{{ login_button_name }}" value="Log in" />
-</fieldset>
-</div>
-{% endif %}
-<div id="login_choices">
-<fieldset>
-  <legend>Using an existing login</legend>
-  <ul>
-{% for n, v in choices %}
-    <li><input type="submit" name="{{ n }}" value="{{ v }}" /></li>
-{% endfor %}
-{% if not openid_fields %}
-    <li><input type="submit" value="Any OpenID" /></li>
-{% endif %}
-  </ul>
-</fieldset>
-</div>
+
+{% include "celauth/login_prompt.html" %}
+
 </form>
 
 </body>

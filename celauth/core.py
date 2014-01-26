@@ -89,7 +89,7 @@ class AuthGate(CelRegistry):
 
     def disclaim_pending(self):
         if self.account:
-            for a in self._addresses_pending():
+            for a in self._addresses_pending(self._loginids):
                 self._registry.remove_address(self.account, a)
             self._registry.remove_address(self.account, a)
         for lid in self._loginids:
@@ -154,8 +154,10 @@ class AuthGate(CelRegistry):
         if not self.can_create_account():
             raise AuthError("Account can not be created") 
         account = registry.create_account(self.loginid)
+        assert account
         for addr in registry.addresses_credible(self.loginid):
             if registry.is_free_address(addr):
                 registry.assign(addr, account)
+        assert not registry.is_free_address(addr)
         self._session.account_update()
 

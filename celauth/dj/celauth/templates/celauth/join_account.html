@@ -1,0 +1,28 @@
+<html>
+<body>
+
+<p>You have an existing account for your email addresses:</p>
+<ul>
+{{ addresses | unordered_list }}
+</ul>
+
+<p>Log in to your existing account to grant the current login access.</p>
+
+<form action="{% url 'celauth:login' %}" method="post">
+{% csrf_token %}
+{% if next_url %}
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+{% endif %}
+
+{% include "celauth/login_prompt.html" %}
+
+</form>
+
+<p>Or, cancel granting the current login access and log out.</p>
+<form action="{% url 'celauth:logout' %}" method="post">
+<input type="submit" value="Log out" />
+{% csrf_token %}
+</form>
+
+</body>
+</html>

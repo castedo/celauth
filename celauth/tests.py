@@ -139,56 +139,59 @@ class FakeMailer(object):
     def send_code(self, code, address):
         FakeMailer.last_code = code
 
-def id(tld, name, address=None):
-    luri = 'http://example.' + tld + '/' + name
+def openid(tld, name, address=None):
+    luri = 'https://example.' + tld + '/' + name
     credible = (tld == 'com')
     email = address if address else '%s@example.%s' % (name, tld)
     return OpenIDCase(claimed_id=luri, display_id=luri,
                       email=email, credible=credible)
 
-class NewAcountTests(unittest.TestCase):
+class CelTestCase(unittest.TestCase):
     def setUp(self):
         self.registry = TestCelRegistry()
         self.session = TestSessionStore()
         self.gate = AuthGate(self.registry, self.session, FakeMailer())
 
+    def login_as(self, loginid):
+        self.gate.new_auth(loginid)
+        self.assertTrue(self.gate.loginid)
+
+    def new_account(self, loginid):
+        self.assertFalse(self.gate.loginid)
+        self.assertFalse(self.gate.account)
+        self.login_as(loginid)
+        self.assertFalse(self.gate.account)
+        if loginid.credible:
+            self.assertFalse(self.gate.confirmation_required())
+        else:
+            self.assertTrue(self.gate.confirmation_required())
+            self.assertFalse(self.gate.can_create_account())
+            self.assertTrue(FakeMailer.last_code)
+            self.gate.confirm_email(FakeMailer.last_code)
+            FakeMailer.last_code = None
+        self.assertTrue(self.gate.can_create_account())
+        self.gate.create_account()
+        self.assertTrue(self.gate.account)
+
+class NewAcountTests(CelTestCase):
     def test_new_account_credible_email(self):
-        gate = self.gate
-        self.assertFalse(gate.loginid)
-        gate.new_auth(id('com', 'joe'))
-        self.assertTrue(gate.loginid)
-        self.assertFalse(gate.account)
-        self.assertFalse(gate.confirmation_required())
-        self.assertTrue(gate.can_create_account())
-        gate.create_account()
-        self.assertTrue(gate.account)
-        self.assertEqual(gate.addresses(), ['joe@example.com'])
-        self.assertEqual(gate.addresses_pending(), ['joe@example.com'])
+        self.new_account(openid('com', 'joe'))
+        self.assertEqual(self.gate.addresses(), ['joe@example.com'])
+        self.assertEqual(self.gate.addresses_pending(), ['joe@example.com'])
+        self.assertEqual(self.registry.loginid2account, {'https://example.com/joe':1})
+        self.assertEqual(self.registry.address2account, {'joe@example.com':1})
 
     def test_new_account_incredible_email(self):
-        gate = self.gate
-        self.assertFalse(gate.loginid)
-        gate.new_auth(id('org', 'joe'))
-        self.assertTrue(gate.loginid)
-        self.assertFalse(gate.account)
-        self.assertTrue(gate.confirmation_required())
-        self.assertFalse(gate.can_create_account())
-        self.assertTrue(FakeMailer.last_code)
-        gate.confirm_email(FakeMailer.last_code)
-        FakeMailer.last_code = None
-        self.assertTrue(gate.can_create_account())
-        gate.create_account()
-        self.assertTrue(gate.account)
-        self.assertEqual(gate.addresses(), ['joe@example.org'])
-        self.assertEqual(gate.addresses_confirmed(), ['joe@example.org'])
-        self.assertEqual(self.registry.loginid2account, {'http://example.org/joe':1})
+        self.new_account(openid('org', 'joe'))
+        self.assertEqual(self.gate.addresses(), ['joe@example.org'])
+        self.assertEqual(self.gate.addresses_confirmed(), ['joe@example.org'])
+        self.assertEqual(self.registry.loginid2account, {'https://example.org/joe':1})
         self.assertEqual(self.registry.address2account, {'joe@example.org':1})
 
     def test_email_dislclaim(self):
         gate = self.gate
         self.assertFalse(gate.loginid)
-        gate.new_auth(id('org', 'joe'))
-        self.assertTrue(gate.loginid)
+        self.login_as(openid('org', 'joe'))
         self.assertFalse(gate.account)
         self.assertTrue(gate.addresses())
         self.assertTrue(gate.confirmation_required())
@@ -197,11 +200,9 @@ class NewAcountTests(unittest.TestCase):
         gate.disclaim_pending()
         self.assertFalse(gate.addresses())
 
-class AssignedAccountTests(unittest.TestCase):
+class AssignedAccountTests(CelTestCase):
     def setUp(self):
-        self.registry = TestCelRegistry()
-        self.session = TestSessionStore()
-        self.gate = AuthGate(self.registry, self.session, FakeMailer())
+        CelTestCase.setUp(self)
         self.registry.address2account = {
             'admin@example.org':1,
             'admin@example.com':2,
@@ -209,8 +210,7 @@ class AssignedAccountTests(unittest.TestCase):
 
     def login_to_assigned(self, loginid):
         self.assertFalse(self.gate.loginid)
-        self.gate.new_auth(loginid)
-        self.assertTrue(self.gate.loginid)
+        self.login_as(loginid)
         self.assertFalse(self.gate.account)
         self.assertTrue(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
@@ -220,10 +220,51 @@ class AssignedAccountTests(unittest.TestCase):
         self.assertTrue(self.gate.account)
 
     def test_incredible_email(self):
-        self.login_to_assigned(id('org', 'admin'))
+        self.login_to_assigned(openid('org', 'admin'))
 
     def test_credible_email(self):
-        self.login_to_assigned(id('com', 'admin'))
+        self.login_to_assigned(openid('com', 'admin'))
+
+class ExistingAccountTests(CelTestCase):
+    def setUp(self):
+        CelTestCase.setUp(self)
+        self.new_account(openid('com', 'me'))
+        self.gate.logout()
+        self.assertEqual(self.registry.loginid2account, {
+            'https://example.com/me':1
+        })
+
+    def test_2nd_account(self):
+        self.new_account(openid('com', 'joe'))
+        self.assertEqual(self.gate.addresses(), ['joe@example.com'])
+        self.assertEqual(self.gate.addresses_pending(), ['joe@example.com'])
+        self.assertEqual(self.registry.loginid2account, {
+            'https://example.com/me': 1,
+            'https://example.com/joe':2,
+        })
+        self.assertEqual(self.registry.address2account, {
+            'me@example.com':1,
+            'joe@example.com':2,
+        })
+
+    def test_join_account(self):
+        self.login_as(openid('com', 'me2', 'me@example.com'))
+        self.assertFalse(self.gate.account)
+        self.assertFalse(self.gate.confirmation_required())
+        self.assertFalse(self.gate.can_create_account())
+        self.assertTrue(self.gate.addresses_joinable())
+        #TODO
+        #self.assertEqual(self.registry.loginid2account, {
+        #    'https://example.com/me': 1,
+        #    'https://example.com/me2': None,
+        #})
+        self.login_as(openid('com', 'me'))
+        #TODO
+        #self.assertEqual(self.registry.loginid2account, {
+        #    'https://example.com/me': 1,
+        #    'https://example.com/me2': 1,
+        #})
+
 
 if __name__ == '__main__':
     unittest.main()

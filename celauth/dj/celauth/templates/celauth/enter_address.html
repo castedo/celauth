@@ -1,7 +1,7 @@
 <html>
 <body>
 
-<h2>Enter your email address:</h2>
+<h2>Enter your email address</h2>
 <form action="{% url 'celauth:enter_address' %}" method="post">
 {{ fields }}
 <input type="submit" value="Submit" />
@@ -11,10 +11,10 @@
 {% csrf_token %}
 </form>
 
-<h2>Or, cancel registration</h2>
+<h2>Or, log out</h2>
 
 <form action="{% url 'celauth:logout' %}" method="post">
-<input type="submit" value="Cancel registration" />
+<input type="submit" value="Log out" />
 {% if next_url %}
 <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
 {% endif %}

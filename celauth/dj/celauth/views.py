@@ -45,7 +45,7 @@ def login(request):
 
 def login_response(request, gate):
     if not gate.loginid:
-        return choose_openid_response(request)
+        return choose_openid_response(request, gate)
 
     if not gate.addresses():
         return enter_address_response(request, gate)
@@ -54,7 +54,7 @@ def login_response(request, gate):
         return enter_code_response(request, gate)
 
     if gate.addresses_joinable():
-        return join_account_response(request, gate)
+        return choose_openid_response(request, gate)
 
     if not gate.account:
         assert gate.can_create_account()
@@ -74,7 +74,7 @@ class OpenIDLoginForm(forms.Form):
         widget=forms.TextInput(attrs={'size':'64'}),
     )
 
-def choose_openid_response(request):
+def choose_openid_response(request, gate):
     final_url = request.REQUEST.get(REDIRECT_FIELD_NAME, None)
     openid_form = None
     providers = OPENID_PROVIDERS
@@ -98,16 +98,16 @@ def choose_openid_response(request):
 
     vals = {
         'choices': zip(button_names, providers.texts()),
-        'openid_fields': openid_form,
+        'openid_url_field': openid_form,
         'login_button_name': LOGIN_BUTTON_NAME,
         'next_name': REDIRECT_FIELD_NAME,
         'next_url': final_url,
+        'addresses': gate.addresses(),
     }
-    return render(request, 'celauth/login.html', vals)
-
-def join_account_response(request, gate):
-    #TODO communicate to user than login is for joining
-    return choose_openid_response(request)
+    if gate.addresses_joinable():
+        return render(request, 'celauth/join_account.html', vals)
+    else:
+        return render(request, 'celauth/login.html', vals)
 
 def initial_response(request, openid_url, final_url):
     try:
@@ -177,15 +177,15 @@ def enter_address_response(request, gate, post_data = None):
 
 @require_http_methods(["GET", "POST"])
 def confirm_email(request, confirmation_code):
-    auth = get_auth_gate(request)
-    if not auth.loginid:
-        return choose_openid_response(request)
+    gate = get_auth_gate(request)
+    if not gate.loginid:
+        return choose_openid_response(request, gate)
     if not confirmation_code:
         confirmation_code = request.REQUEST.get('code', None)
-    if auth.confirm_email(confirmation_code):
-        return login_response(request, auth)
+    if gate.confirm_email(confirmation_code):
+        return login_response(request, gate)
     else:
-        return enter_code_response(request, auth, confirmation_code)
+        return enter_code_response(request, gate, confirmation_code)
 
 class EnterCodeForm(forms.Form):
     code = forms.CharField(required=True, label='Confirmation code')

@@ -7,7 +7,7 @@ from celauth import providers
 
 providers.enable_test_openids()
 
-class CelauthTestCase(TestCase):
+class CelDjTestCase(TestCase):
     def login_as(self, tld, id, email_id, next_url=None):
         openid = 'https://example.%s/%s' % (tld, id)
         if email_id:
@@ -37,7 +37,7 @@ class CelauthTestCase(TestCase):
         self.assertContains(response, "Log in")
         return response
 
-class BasicTest(CelauthTestCase):
+class BasicTest(CelDjTestCase):
     def test_login_provider_text(self):
         response = self.client.get("/openid/login")
         self.assertContains(response, "Log in")
@@ -91,4 +91,16 @@ class BasicTest(CelauthTestCase):
 
         response = self.client.post(reverse('celauth:disclaim'))
         self.assertContains(response, "Enter your email address")
+
+class ExistingAccountTests(CelDjTestCase):
+        def setUp(self):
+            self.new_account('com', 'myid', 'mybox', '/there')
+            self.logout()
+
+        def test_join_account(self):
+            final_url = '/there'
+            response = self.login_as('com', 'myid2', 'mybox', final_url)
+            self.assertContains(response, "existing account")
+            response = self.login_as('com', 'myid', 'mybox', final_url)
+            self.assertRedirects(response, final_url, target_status_code=404)
 

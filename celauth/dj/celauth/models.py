@@ -27,7 +27,7 @@ class EmailAddress(models.Model):
     account = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __unicode__(self):
-        return self.address
+        return u"(%s, %s)" % (self.address, self.account)
 
 class OpenID(models.Model):
     claimed_id = models.URLField(max_length=255, primary_key=True)
@@ -77,8 +77,11 @@ class DjangoCelRegistry(CelRegistryBase):
         return set([c.email.address for c in claims])
 
     def is_free_address(self, address):
-        free = EmailAddress.objects.filter(address=address, account=None)
-        return free.exists()
+        try:
+            email = EmailAddress.objects.get(address=address)
+            return email.account is None
+        except EmailAddress.DoesNotExist:
+            return True
 
     def assign(self, address, account):
         free = EmailAddress.objects.get(address=address, account=None)
@@ -153,6 +156,7 @@ class DjangoCelRegistry(CelRegistryBase):
     def create_account(self, openid):
         openid.account = self._accountant.create_account(self.addresses(openid))
         openid.save()
+        return openid.account
 
     def has_incredible_claims(self, openid):
         return openid.claims.filter(emailclaim__credible=False).exists()
