@@ -18,7 +18,9 @@ celauth/dj/celauth/templates/celauth/default_view.html
 celauth/dj/celauth/templates/celauth/enter_address.html
 celauth/dj/celauth/templates/celauth/enter_code.html
 celauth/dj/celauth/templates/celauth/failure.html
+celauth/dj/celauth/templates/celauth/join_account.html
 celauth/dj/celauth/templates/celauth/login.html
+celauth/dj/celauth/templates/celauth/login_prompt.html
 celauth/dj/celauth/templates/celauth/new_account.html
 setup.cfg
 setup.py
