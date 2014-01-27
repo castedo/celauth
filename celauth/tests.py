@@ -258,11 +258,10 @@ class ExistingAccountTests(CelTestCase):
             'https://example.com/me2': None,
         })
         self.login_as(openid('com', 'me'))
-        #TODO
-        #self.assertEqual(self.registry.loginid2account, {
-        #    'https://example.com/me': 1,
-        #    'https://example.com/me2': 1,
-        #})
+        self.assertEqual(self.registry.loginid2account, {
+            'https://example.com/me': 1,
+            'https://example.com/me2': 1,
+        })
 
 
 if __name__ == '__main__':

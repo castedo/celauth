@@ -118,11 +118,14 @@ class AuthGate(CelRegistry):
         self.login(openid_case)
 
     def login(self, openid_case):
-        openid = self._registry.note_openid(openid_case)
+        new_loginid = self._registry.note_openid(openid_case)
         address = self._normalize_email(openid_case.email)
         if address and address not in self.addresses():
-            self._make_claim(openid, address, openid_case.credible)
-        self._session.set_loginid(openid)
+            self._make_claim(new_loginid, address, openid_case.credible)
+        account = self._registry.account(new_loginid)
+        if account and self._session.loginid:
+            self._registry.set_account(self._session.loginid, account)
+        self._session.set_loginid(new_loginid)
 
     def logout(self):
         self._session.clear()

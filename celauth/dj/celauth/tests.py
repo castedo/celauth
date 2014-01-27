@@ -103,4 +103,7 @@ class ExistingAccountTests(CelDjTestCase):
             self.assertContains(response, "existing account")
             response = self.login_as('com', 'myid', 'mybox', final_url)
             self.assertRedirects(response, final_url, target_status_code=404)
+            self.logout()
+            response = self.login_as('com', 'myid2', 'mybox', final_url)
+            self.assertRedirects(response, final_url, target_status_code=404)
 
