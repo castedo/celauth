@@ -39,18 +39,19 @@ class CelDjTestCase(TestCase):
 
 class BasicTest(CelDjTestCase):
     def test_login_provider_text(self):
-        response = self.client.get("/openid/login")
+        response = self.client.get(reverse('celauth:login'))
         self.assertContains(response, "Log in")
         self.assertContains(response, "Google")
         self.assertContains(response, "Yahoo!")
         self.assertContains(response, "Any OpenID")
 
     def test_full_cycle(self):
-        response = self.client.get("/openid/login?next=/there")
+        path = reverse('celauth:login') + '?next=/there'
+        response = self.client.get(path)
         html = "<input name='next' type='hidden' value='/there' />"
         self.assertContains(response, html, html=True)
 
-        response = self.client.post("/openid/login")
+        response = self.client.post(reverse('celauth:login'))
         self.assertContains(response, "OpenID")
 
         response = self.new_account('com', 'myid', 'mybox', '/there')
@@ -79,7 +80,7 @@ class BasicTest(CelDjTestCase):
         response = self.client.post(path, data, HTTP_HOST='testserver')
         self.assertRedirects(response, "/there", target_status_code=404)
 
-        response = self.client.get("/openid/")
+        response = self.client.get(reverse('celauth:default'))
         self.assertContains(response, "dude@example.org")
 
         self.logout()
