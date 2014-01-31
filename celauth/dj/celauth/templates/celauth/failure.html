@@ -1,8 +1,5 @@
-<html>
-<head>
-  <title>OpenID Failure</title>
-</head>
-<body>
+{% extends 'celauth/base.html' %}
+{% block content %}
 
 <h1>OpenID Failure</h1>
 <p>{{ message }}</p>
@@ -10,5 +7,4 @@
 {{ exception }}
 </pre>
 
-</body>
-</html>
+{% endblock content %}

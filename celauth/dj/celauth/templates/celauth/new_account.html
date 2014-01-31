@@ -1,5 +1,5 @@
-<html>
-<body>
+{% extends 'celauth/base.html' %}
+{% block content %}
 
 <p>No account has email addresses:</p>
 <ul>
@@ -20,5 +20,4 @@
 {% csrf_token %}
 </form>
 
-</body>
-</html>
+{% endblock content %}

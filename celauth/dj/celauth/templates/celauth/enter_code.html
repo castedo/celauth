@@ -1,5 +1,5 @@
-<html>
-<body>
+{% extends 'celauth/base.html' %}
+{% block content %}
 
 <h2>Enter your email confirmation code:</h2>
 <form action="{% url 'celauth:confirm_email' '' %}" method="post">
@@ -28,5 +28,4 @@
 
 {% endif %}
 
-</body>
-</html>
+{% endblock content %}
