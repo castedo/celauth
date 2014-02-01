@@ -7,7 +7,15 @@
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
   </head>
 <body>
-  <div class="container-fluid">
+  <div class="container">
+    <div class="navbar" role="navigation">
+      {% if gate.loginid %}
+      <form action="{% url 'celauth:logout' %}" method="post" role="form" class="navbar-form navbar-right">
+        <input type="submit" value="Log out" class="btn btn-xs"/>
+        {% csrf_token %}
+      </form>
+      {% endif %}
+    </div>
   {% block content %}
   {% endblock %}
   </div>

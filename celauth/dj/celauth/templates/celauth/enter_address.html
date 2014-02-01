@@ -13,15 +13,4 @@
 </form>
 </p>
 
-<h2>Or, log out</h2>
-<p>
-<form action="{% url 'celauth:logout' %}" method="post">
-<input type="submit" value="Log out" class="btn btn-default"/>
-{% if next_url %}
-<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
-{% endif %}
-{% csrf_token %}
-</form>
-</p>
-
 {% endblock content %}

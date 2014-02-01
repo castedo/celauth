@@ -1,13 +1,9 @@
 {% extends 'celauth/base.html' %}
 {% block content %}
 
-{% if account %}
+{% if gate.account %}
 
-<h1>Account {{ account }}</h1>
-<form action="{% url 'celauth:logout' %}" method="post">
-<input type="submit" value="Log out"/>
-{% csrf_token %}
-</form>
+<h2>Account <span class="label label-success">{{ gate.account }}</span></h2>
 
 {% else %}
 
@@ -16,11 +12,11 @@
 
 {% endif %}
 
-{% if addresses_pending %}
+{% if gate.addresses_pending %}
 
-<h2>Email addressess pending confirmation</h2>
+<h3>Email addressess pending confirmation</h3>
 <ul>
-{{ addresses_pending | unordered_list }}
+{{ gate.addresses_pending | unordered_list }}
 </ul>
 
 <form action="{% url 'celauth:disclaim' %}" method="post">
@@ -33,10 +29,10 @@
 
 {% endif %}
 
-{% if addresses_confirmed %}
-<h2>Confirmed email addressess</h2>
+{% if gate.addresses_confirmed %}
+<h4>Confirmed email addressess</h4>
 <ul>
-{{ addresses_confirmed | unordered_list }}
+{{ gate.addresses_confirmed | unordered_list }}
 </ul>
 {% endif %}
 

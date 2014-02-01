@@ -1,9 +1,9 @@
 {% extends 'celauth/base.html' %}
 {% block content %}
 
-<h3>No account has email addresses:</h3>
-<ul>
-{{ addresses | unordered_list }}
+<h3>No account found for email addresses:</h3>
+<ul class="lead">
+{{ gate.addresses | unordered_list }}
 </ul>
 <p>
 <form action="{% url 'celauth:create_account' %}" method="post">
@@ -11,14 +11,6 @@
 {% if next_url %}
 <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
 {% endif %}
-{% csrf_token %}
-</form>
-</p>
-
-<h4>Or, log out</h4>
-<p>
-<form action="{% url 'celauth:logout' %}" method="post">
-<input type="submit" value="Log out" class="btn btn-default"/>
 {% csrf_token %}
 </form>
 </p>

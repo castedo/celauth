@@ -30,11 +30,9 @@ def get_auth_gate(request):
 
 @require_http_methods(["GET", "POST"])
 def default_view(request):
-    auth = get_auth_gate(request)
+    gate = get_auth_gate(request)
     vals = {
-        'account': auth.account,
-        'addresses_confirmed': list(auth.addresses_confirmed()),
-        'addresses_pending': list(auth.addresses_pending()),
+        'gate': gate,
     }
     return render(request, 'celauth/default_view.html', vals)
 
@@ -59,7 +57,7 @@ def login_response(request, gate):
     if not gate.account:
         assert gate.can_create_account()
         vals = {
-            'addresses': gate.addresses(),
+            'gate': gate,
             'next_name': REDIRECT_FIELD_NAME,
             'next_url': request.REQUEST.get(REDIRECT_FIELD_NAME, None),
         }
@@ -97,12 +95,12 @@ def choose_openid_response(request, gate):
         return initial_response(request, openid_url, final_url)
 
     vals = {
+        'gate': gate,
         'choices': zip(button_names, providers.texts()),
         'openid_url_field': openid_form,
         'login_button_name': LOGIN_BUTTON_NAME,
         'next_name': REDIRECT_FIELD_NAME,
         'next_url': final_url,
-        'addresses': gate.addresses(),
     }
     if gate.addresses_joinable():
         return render(request, 'celauth/join_account.html', vals)
@@ -165,6 +163,7 @@ def enter_address_response(request, gate, post_data = None):
         form = EnterAddressForm()
     if not form.is_valid():
         vals = {
+            'gate': gate,
             'fields': form,
             'next_name': REDIRECT_FIELD_NAME,
             'next_url': request.REQUEST.get(REDIRECT_FIELD_NAME, None),
@@ -172,8 +171,8 @@ def enter_address_response(request, gate, post_data = None):
         return render(request, 'celauth/enter_address.html', vals)
 
     address = form.cleaned_data['address']
-    auth.claim(address)
-    return enter_code_response(request, auth)
+    gate.claim(address)
+    return enter_code_response(request, gate)
 
 @require_http_methods(["GET", "POST"])
 def confirm_email(request, confirmation_code):
@@ -197,6 +196,7 @@ def enter_code_response(request, gate, invalid_confirmation_code=None):
     else:
         form = EnterCodeForm()
     vals = {
+        'gate': gate,
         'fields': form,
         'addresses_pending': list(gate.addresses_pending()),
         'next_name': REDIRECT_FIELD_NAME,
@@ -222,9 +222,10 @@ def logout(request):
 def failure(request, message, exception=None):
     if not settings.DEBUG:
         exception = None
-    return render(request,
-                  'celauth/failure.html',
-                  dict(message=str(message), exception=str(exception)),
-                  status=403
-                 )
+    vals = {
+        'gate': gate,
+        'message': str(message),
+        'exception': str(exception),
+    }
+    return render(request, 'celauth/failure.html', vals, status=403)
 
