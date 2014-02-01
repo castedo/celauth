@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='django-openid-celauth',
-      version='1.5.2',
+      version='1.6.0',
       install_requires=['Django>=1.6', 'python-openid>=2.2', 'South>=0.8'],
       description='Claimed Email Login Authentication with OpenID and Django',
       keywords='django, openid',

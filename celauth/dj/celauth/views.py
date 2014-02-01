@@ -119,7 +119,7 @@ def initial_response(request, openid_url, final_url):
         else:
             return HttpResponse(redir, content_type='text/html')
     except DiscoveryFailure, ex:
-        return failure('OpenID Discovery Failure', ex)
+        return failure(request, 'OpenID Discovery Failure', ex)
 
 def final_redirect(request):
     final_url = request.REQUEST.get(REDIRECT_FIELD_NAME,
