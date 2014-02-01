@@ -3,8 +3,10 @@
 
 <h1>OpenID Failure</h1>
 <p>{{ message }}</p>
+{% if exception %}
 <pre>
 {{ exception }}
 </pre>
+{% endif %}
 
 {% endblock content %}

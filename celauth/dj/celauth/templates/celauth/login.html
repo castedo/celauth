@@ -1,16 +1,10 @@
 {% extends 'celauth/base.html' %}
 {% block content %}
-
-<h1>Log in or register</h1>
-
 <form action="{% url 'celauth:login' %}" method="post">
 {% csrf_token %}
 {% if next_url %}
 <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
 {% endif %}
-
 {% include "celauth/login_prompt.html" %}
-
 </form>
-
 {% endblock content %}

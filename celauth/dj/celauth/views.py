@@ -220,12 +220,12 @@ def logout(request):
 
 
 def failure(request, message, exception=None):
-    if not settings.DEBUG:
-        exception = None
+    gate = get_auth_gate(request)
     vals = {
         'gate': gate,
         'message': str(message),
-        'exception': str(exception),
     }
+    if settings.DEBUG and exception:
+        vals['exception'] = str(exception)
     return render(request, 'celauth/failure.html', vals, status=403)
 
