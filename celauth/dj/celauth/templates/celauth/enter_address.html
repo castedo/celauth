@@ -2,23 +2,26 @@
 {% block content %}
 
 <h2>Enter your email address</h2>
+<p>
 <form action="{% url 'celauth:enter_address' %}" method="post">
-{{ fields }}
-<input type="submit" value="Submit" />
+{{ fields.as_p }}
+<input type="submit" value="Submit" class="btn btn-primary" />
 {% if next_url %}
-<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}" />
 {% endif %}
 {% csrf_token %}
 </form>
+</p>
 
 <h2>Or, log out</h2>
-
+<p>
 <form action="{% url 'celauth:logout' %}" method="post">
-<input type="submit" value="Log out" />
+<input type="submit" value="Log out" class="btn btn-default"/>
 {% if next_url %}
 <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
 {% endif %}
 {% csrf_token %}
 </form>
+</p>
 
 {% endblock content %}

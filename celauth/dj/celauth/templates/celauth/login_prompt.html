@@ -1,22 +1,30 @@
 {% if openid_url_field %}
-<div id="login_any_openid">
-<fieldset>
-  <legend>Using any OpenID</legend>
-  {{ openid_url_field }}
-  <input type="submit" name="{{ login_button_name }}" value="Log in" />
-</fieldset>
+<div class="panel panel-default">
+  <div class="panel-heading">Login using any OpenID</div>
+  <div class="panel-body">
+    {{ openid_url_field }}
+    <input class="btn btn-primary" type="submit" name="{{ login_button_name }}" value="Log in" />
+  </div>
 </div>
 {% endif %}
-<div id="login_choices">
-<fieldset>
-  <legend>Using an existing login</legend>
-  <ul>
-{% for n, v in choices %}
-    <li><input type="submit" name="{{ n }}" value="{{ v }}" /></li>
-{% endfor %}
-{% if not openid_url_field %}
-    <li><input type="submit" value="Any OpenID" /></li>
-{% endif %}
-  </ul>
-</fieldset>
+<div class="panel panel-default">
+  <div class="panel-heading">Login using</div>
+  <div class="panel-body">
+    <div class="row">
+    {% for n, v in choices %}
+        <div class="col-lg-2 col-md-3 col-sm-4 col-xs-6">
+          <div class="thumbnail">
+            <input class="btn btn-primary btn-block" type="submit" name="{{ n }}" value="{{ v }}" />
+          </div>
+        </div>
+    {% endfor %}
+    {% if not openid_url_field %}
+        <div class="col-lg-2 col-md-3 col-sm-4 col-xs-6">
+          <div class="thumbnail">
+            <input class="btn btn-primary btn-block" type="submit" value="Any OpenID" />
+          </div>
+        </div>
+    {% endif %}
+    </div>
+  </div>
 </div>
