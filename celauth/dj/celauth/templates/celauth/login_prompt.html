@@ -1,6 +1,6 @@
 {% if openid_url_field %}
 <div class="panel panel-default">
-  <div class="panel-heading"><h2 class="panel-title">Login using any OpenID</h2></div>
+  <div class="panel-heading"><h2 class="panel-title">Login using any OpenID:</h2></div>
   <div class="panel-body">
     {{ openid_url_field }}
     <input class="btn btn-primary" type="submit" name="{{ login_button_name }}" value="Log in" />
@@ -8,7 +8,7 @@
 </div>
 {% endif %}
 <div class="panel panel-default">
-  <div class="panel-heading"><h2 class="panel-title">Login using</h2></div>
+  <div class="panel-heading"><h2 class="panel-title">Login or register using:</h2></div>
   <div class="panel-body">
     <div class="row">
     {% for n, v in choices %}

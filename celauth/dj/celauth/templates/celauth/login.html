@@ -7,4 +7,20 @@
 {% endif %}
 {% include "celauth/login_prompt.html" %}
 </form>
+<div class="panel panel-default">
+  <div class="panel-heading"><h2 class="panel-title">Or, start with your email address:</h2></div>
+  <div class="panel-body">
+    <p><form action="{% url 'celauth:enter_address' %}" method="post" class="form" role="form">
+      <div class="form-group">
+         <label for="id_address" class="sr-only">Your email address:</label>
+         <input id="id_address" name="address" type="email" class="form-control" placeholder="Email address"/>
+      </div>
+      <input type="submit" value="Submit" class="btn btn-primary" />
+      {% if next_url %}
+      <input type="hidden" name="{{ next_name }}" value="{{ next_url }}" />
+      {% endif %}
+      {% csrf_token %}
+    </form></p>
+  </div>
+</div>
 {% endblock content %}

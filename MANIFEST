@@ -12,6 +12,7 @@ celauth/dj/celauth/urls.py
 celauth/dj/celauth/views.py
 celauth/dj/celauth/migrations/0001_initial.py
 celauth/dj/celauth/migrations/__init__.py
+celauth/dj/celauth/templates/celauth/base.html
 celauth/dj/celauth/templates/celauth/confirm_email_body.txt
 celauth/dj/celauth/templates/celauth/confirm_email_subject.txt
 celauth/dj/celauth/templates/celauth/default_view.html
