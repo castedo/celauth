@@ -147,6 +147,12 @@ class AuthGate(CelRegistry):
         return registry.has_incredible_claims(self.loginid)
 
     def confirm_email(self, code):
+        """Register that login is confirming email confirmation code.
+        Raises:
+            InvalidConfirmationCode
+            AddressAccountConflict: Email address is already assigned to
+                another acccount.
+        """
         registry = self._registry
         session = self._session
         address = registry.confirm_email(self.loginid, code)
@@ -161,7 +167,6 @@ class AuthGate(CelRegistry):
             if account:
                 registry.set_account(self.loginid, account)
                 session.account_update()
-        return True
 
     def can_create_account(self):
         if self.account or not self.loginid:

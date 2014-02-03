@@ -180,10 +180,15 @@ def confirm_email(request, confirmation_code):
         return choose_openid_response(request, gate)
     if not confirmation_code:
         confirmation_code = request.REQUEST.get('code', None)
-    if gate.confirm_email(confirmation_code):
+    try:
+        gate.confirm_email(confirmation_code)
         return login_response(request, gate)
-    else:
+    except InvalidConfirmationCode:
         return enter_code_response(request, gate, confirmation_code)
+    except AddressAccountConflict as ex:
+        return failure(request,
+                       "Email address is already assigned to another acccount.",
+                       ex)
 
 class EnterCodeForm(forms.Form):
     code = forms.CharField(required=True, label='Confirmation code')

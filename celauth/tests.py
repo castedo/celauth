@@ -226,7 +226,7 @@ class AssignedAccountTests(CelTestCase):
         self.assertTrue(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
         self.assertTrue(code_in_email())
-        self.assertTrue(self.gate.confirm_email(take_code_from_email()))
+        self.gate.confirm_email(take_code_from_email())
         self.assertFalse(self.gate.can_create_account())
         self.assertTrue(self.gate.account)
 
