@@ -8,14 +8,12 @@ from celauth.dj.celauth.openid_store import DjangoOpenIDStore
 class OpenIDChoices(object):
     def __init__(self, data):
         self.data = data
-    def num(self):
-        return len(self.data)
-    def ids(self):
-        return [x[0] for x in self.data]
+    def ids(self, id_prefix=''):
+        return [id_prefix + x[0] for x in self.data]
     def texts(self):
         return [x[1] for x in self.data]
-    def url(self, i):
-        return self.data[i][2]
+    def urls_by_id(self, id_prefix=''):
+        return dict( (id_prefix + x[0], x[2]) for x in self.data )
     def credible_email(self, claimed_id, email_address):
         netloc = urlparse.urlparse(claimed_id).netloc
         for x in self.data:

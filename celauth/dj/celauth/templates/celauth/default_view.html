@@ -1,39 +1,16 @@
 {% extends 'celauth/base.html' %}
 {% block content %}
 
-{% if gate.account %}
+<div class="page-header">
+  <h2>
+    {% if gate.account %}
+    Account <span class="label label-success">{{ gate.account }}</span>
+    {% else %}
+    No account
+    {% endif %}
+  </h2>
+</div>
 
-<h2>Account <span class="label label-success">{{ gate.account }}</span></h2>
-
-{% else %}
-
-<h1>No Account</h1>
-<a href="{% url 'celauth:login' %}">Log in</a>
-
-{% endif %}
-
-{% if gate.addresses_pending %}
-
-<h3>Email addresses pending confirmation</h3>
-<ul>
-{{ gate.addresses_pending | unordered_list }}
-</ul>
-
-<form action="{% url 'celauth:disclaim' %}" method="post">
-<input type="submit" value="Cancel pending addresses" />
-{% if next_url %}
-<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
-{% endif %}
-{% csrf_token %}
-</form>
-
-{% endif %}
-
-{% if gate.addresses_confirmed %}
-<h4>Confirmed email addresses</h4>
-<ul>
-{{ gate.addresses_confirmed | unordered_list }}
-</ul>
-{% endif %}
+{% include "celauth/list_addresses.html" %}
 
 {% endblock content %}

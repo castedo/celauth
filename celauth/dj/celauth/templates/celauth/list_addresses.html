@@ -1,0 +1,33 @@
+
+{% if gate.addresses_pending %}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Email addresses pending confirmation</h3>
+  </div>
+  <div class="panel-body">
+    <ul>
+    {{ gate.addresses_pending | unordered_list }}
+    </ul>
+    <form action="{% url 'celauth:disclaim' %}" method="post" class="form">
+    <input type="submit" value="Cancel pending addresses" class="btn btn-default"/>
+    {% if next_url %}
+    <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+    {% endif %}
+    {% csrf_token %}
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if gate.addresses_confirmed %}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Confirmed email addresses</h3>
+  </div>
+  <div class="panel-body">
+    <ul>
+    {{ gate.addresses_confirmed | unordered_list }}
+    </ul>
+  </div>
+</div>
+{% endif %}

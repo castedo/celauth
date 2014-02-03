@@ -10,7 +10,7 @@ from django import forms
 from openid.consumer.discover import DiscoveryFailure
 from celauth import OpenIDCase
 from celauth.session import CelSession
-from celauth.core import AuthGate
+from celauth.core import AuthGate, InvalidConfirmationCode, AddressAccountConflict
 from celauth.providers import OPENID_PROVIDERS, facade
 from celauth.dj.celauth import Mailer
 from celauth.dj.celauth.models import DjangoCelRegistry
@@ -72,16 +72,17 @@ class OpenIDLoginForm(forms.Form):
         widget=forms.TextInput(attrs={'size':'64'}),
     )
 
+def provider_buttons_iteritems():
+    button_names = OPENID_PROVIDERS.ids(LOGIN_BUTTON_NAME + '-')
+    return zip(button_names, OPENID_PROVIDERS.texts())
+
 def choose_openid_response(request, gate):
     final_url = request.REQUEST.get(REDIRECT_FIELD_NAME, None)
     openid_form = None
-    providers = OPENID_PROVIDERS
-    name_prefix = LOGIN_BUTTON_NAME + '-'
-    button_names = [name_prefix + s for s in providers.ids()]
     if request.method == 'POST':
-        for i in range(providers.num()):
-          if button_names[i] in request.POST:
-              openid_url = providers.url(i)
+        button_urls = OPENID_PROVIDERS.urls_by_id(LOGIN_BUTTON_NAME + '-')
+        for button_name, openid_url in button_urls.iteritems():
+          if button_name in request.POST:
               return initial_response(request, openid_url, final_url)
 
         if LOGIN_BUTTON_NAME in request.POST:
@@ -96,7 +97,7 @@ def choose_openid_response(request, gate):
 
     vals = {
         'gate': gate,
-        'choices': zip(button_names, providers.texts()),
+        'choices': provider_buttons_iteritems(),
         'openid_url_field': openid_form,
         'login_button_name': LOGIN_BUTTON_NAME,
         'next_name': REDIRECT_FIELD_NAME,
@@ -171,13 +172,13 @@ def enter_address_response(request, gate, post_data = None):
         return render(request, 'celauth/enter_address.html', vals)
 
     gate.claim(form.cleaned_data['address'])
-    return enter_code_response(request, gate)
+    return enter_code_response(request, gate, check_email_msg=True)
 
 @require_http_methods(["GET", "POST"])
 def confirm_email(request, confirmation_code):
     gate = get_auth_gate(request)
     if not gate.loginid:
-        return choose_openid_response(request, gate)
+        return enter_code_response(request, gate)
     if not confirmation_code:
         confirmation_code = request.REQUEST.get('code', None)
     try:
@@ -193,15 +194,19 @@ def confirm_email(request, confirmation_code):
 class EnterCodeForm(forms.Form):
     code = forms.CharField(required=True, label='Confirmation code')
 
-def enter_code_response(request, gate, invalid_confirmation_code=None):
+def enter_code_response(request, gate, invalid_confirmation_code=None, check_email_msg=False):
     if invalid_confirmation_code:
         form = EnterCodeForm({'code': invalid_confirmation_code})
-        form.errors['code'] = ["invalid or expired"]
+        form.errors['code'] = "'%s' is invalid or expired" % invalid_confirmation_code 
     else:
         form = EnterCodeForm()
     vals = {
         'gate': gate,
         'form': form,
+        'choices': provider_buttons_iteritems(),
+        'check_email_msg': check_email_msg,
+        'openid_url_field': None,
+        'login_button_name': LOGIN_BUTTON_NAME,
         'next_name': REDIRECT_FIELD_NAME,
         'next_url': request.REQUEST.get(REDIRECT_FIELD_NAME, None),
     }

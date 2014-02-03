@@ -1,21 +1,27 @@
 {% extends 'celauth/base.html' %}
 {% block content %}
 
+{% if check_email_msg %}
 <p class="alert alert-info">
 <strong>Check your email for your confirmation code.</strong>
-It may take a few minutes before your email message arrives, and it might be 
-misplaced in your spam folder.
+Your confirmation email message might get misdirected to your spam folder.
 </p>
+{% endif %}
 
+{% if gate.loginid %}
 <div class="panel panel-default">
   <div class="panel-heading">
     <h2 class="panel-title">Enter your email confirmation code:</h2>
   </div>
   <div class="panel-body">
     <form action="{% url 'celauth:confirm_email' '' %}" method="post" class="form-inline">
-      {{ form.non_field_errors }}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% if form.code.errors %}
+      <div class="alert alert-danger">{{ form.code.errors }}</div>
+      {% endif %}
       <div class="form-group">
-        {{ form.code.errors }}
         <label for="id_code" class="sr-only">Confirmation code:</label>
         <input id="id_code" name="code" type="text" class="form-control" placeholder="Confirmation code"/>
       </div>
@@ -27,25 +33,20 @@ misplaced in your spam folder.
     </form>
   </div>
 </div>
-
-{% if gate.addresses_pending %}
-<div class="panel panel-default">
-  <div class="panel-heading">
-    <h3 class="panel-title">Email addresses pending confirmation</h3>
-  </div>
-  <div class="panel-body">
-    <ul>
-    {{ gate.addresses_pending | unordered_list }}
-    </ul>
-    <form action="{% url 'celauth:disclaim' %}" method="post" class="form">
-    <input type="submit" value="Cancel pending addresses" class="btn btn-default"/>
-    {% if next_url %}
-    <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
-    {% endif %}
-    {% csrf_token %}
-    </form>
-  </div>
-</div>
+{% else %}
+<p class="alert alert-warning">
+  You need to log in or register to confirm your email address. Please log
+  in or register using a suggested external account.
+</p>
+<form action="{% url 'celauth:login' %}" method="post">
+{% csrf_token %}
+{% if next_url %}
+<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
 {% endif %}
+{% include "celauth/login_prompt.html" %}
+</form>
+{% endif %}
+
+{% include "celauth/list_addresses.html" %}
 
 {% endblock content %}
