@@ -8,21 +8,25 @@
 </div>
 {% endif %}
 <div class="panel panel-default">
-  <div class="panel-heading"><h2 class="panel-title">Login or register using:</h2></div>
+  <div class="panel-heading"><h2 class="panel-title">Login or register</h2></div>
   <div class="panel-body">
     <div class="row">
-    {% for n, v in choices %}
+    {% for button_name, button_text in choices %}
         <div class="col-lg-2 col-md-3 col-sm-4 col-xs-6">
-          <div class="thumbnail">
-            <input class="btn btn-primary btn-block" type="submit" name="{{ n }}" value="{{ v }}" />
-          </div>
+          <button class="thumbnail btn-block" type="submit" name="{{ button_name }}">
+            <div class="icon-login icon-{{ button_name }}"></div>
+            <div class="login-hint">Log in with</div>
+            <div class="btn btn-primary btn-block btn-login">{{ button_text }}</div>
+          </button>
         </div>
     {% endfor %}
     {% if not openid_url_field %}
         <div class="col-lg-2 col-md-3 col-sm-4 col-xs-6">
-          <div class="thumbnail">
-            <input class="btn btn-primary btn-block" type="submit" value="Any OpenID" />
-          </div>
+          <button class="thumbnail btn-block" type="submit">
+            <div class="icon-login icon-login-any-openid"></div>
+            <div class="login-hint">Log in with</div>
+            <div class="btn btn-primary btn-block btn-login">Any OpenID</div>
+          </button>
         </div>
     {% endif %}
     </div>
