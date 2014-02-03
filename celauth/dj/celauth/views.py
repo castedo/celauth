@@ -170,8 +170,7 @@ def enter_address_response(request, gate, post_data = None):
         }
         return render(request, 'celauth/enter_address.html', vals)
 
-    address = form.cleaned_data['address']
-    gate.claim(address)
+    gate.claim(form.cleaned_data['address'])
     return enter_code_response(request, gate)
 
 @require_http_methods(["GET", "POST"])
@@ -197,8 +196,7 @@ def enter_code_response(request, gate, invalid_confirmation_code=None):
         form = EnterCodeForm()
     vals = {
         'gate': gate,
-        'fields': form,
-        'addresses_pending': list(gate.addresses_pending()),
+        'form': form,
         'next_name': REDIRECT_FIELD_NAME,
         'next_url': request.REQUEST.get(REDIRECT_FIELD_NAME, None),
     }

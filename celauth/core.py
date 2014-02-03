@@ -46,10 +46,12 @@ class CelRegistry(object):
     def _make_claim(self, loginid, email_address, credible):
         self._registry.claim(loginid, email_address, credible)
         # os.urandom(5) will produce about 1 trillion possibilities
+        if not self._registry.is_confirmed_claim(loginid, email_address):
+            self._send_code(email_address)
+
+    def _send_code(self, email_address):
         code = b32encode(os.urandom(5))
         self._registry.save_confirmation_code(code, email_address)
-        #TODO if already confirmed, send email to that effect
-        #TODO catch any user conflict exception and send email to that effect
         self._mailer.send_code(code, email_address)
 
     def _addresses(self, loginids):
@@ -132,7 +134,10 @@ class AuthGate(CelRegistry):
 
     def claim(self, email_address):
         address = self._normalize_email(email_address)
-        self._make_claim(self.loginid, address, False)
+        if self.loginid:
+            self._make_claim(self.loginid, address, False)
+        else:
+            self._send_code(address)
 
     def confirmation_required(self):
         registry = self._registry

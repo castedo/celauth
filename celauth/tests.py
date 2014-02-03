@@ -64,6 +64,9 @@ class TestCelRegistry(CelRegistryBase):
     def addresses_credible(self, loginid):
         return [a for (l, a) in self.credibles if l == loginid]
 
+    def is_confirmed_claim(self, loginid, address):
+        return (loginid, address) in self.confirms
+
     def is_free_address(self, address):
         return address not in self.address2account.keys()
 
@@ -139,6 +142,14 @@ class FakeMailer(object):
     def send_code(self, code, address):
         FakeMailer.last_code = code
 
+def code_in_email():
+    return FakeMailer.last_code is not None
+
+def take_code_from_email():
+    ret = FakeMailer.last_code
+    FakeMailer.last_code = None
+    return ret
+
 def openid(tld, name, address=None):
     luri = 'https://example.' + tld + '/' + name
     credible = (tld == 'com')
@@ -166,9 +177,8 @@ class CelTestCase(unittest.TestCase):
         else:
             self.assertTrue(self.gate.confirmation_required())
             self.assertFalse(self.gate.can_create_account())
-            self.assertTrue(FakeMailer.last_code)
-            self.gate.confirm_email(FakeMailer.last_code)
-            FakeMailer.last_code = None
+            self.assertTrue(code_in_email())
+            self.gate.confirm_email(take_code_from_email())
         self.assertTrue(self.gate.can_create_account())
         self.gate.create_account()
         self.assertTrue(self.gate.account)
@@ -196,7 +206,8 @@ class NewAcountTests(CelTestCase):
         self.assertTrue(gate.addresses())
         self.assertTrue(gate.confirmation_required())
         self.assertFalse(gate.can_create_account())
-        self.assertTrue(FakeMailer.last_code)
+        self.assertTrue(code_in_email())
+        take_code_from_email()
         gate.disclaim_pending()
         self.assertFalse(gate.addresses())
 
@@ -214,8 +225,8 @@ class AssignedAccountTests(CelTestCase):
         self.assertFalse(self.gate.account)
         self.assertTrue(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
-        self.assertTrue(FakeMailer.last_code)
-        self.assertTrue(self.gate.confirm_email(FakeMailer.last_code))
+        self.assertTrue(code_in_email())
+        self.assertTrue(self.gate.confirm_email(take_code_from_email()))
         self.assertFalse(self.gate.can_create_account())
         self.assertTrue(self.gate.account)
 
@@ -262,6 +273,13 @@ class ExistingAccountTests(CelTestCase):
             'https://example.com/me': 1,
             'https://example.com/me2': 1,
         })
+
+class EmailTests(CelTestCase):
+    def test_anon_address_entry(self):
+        self.assertFalse(code_in_email())
+        self.gate.claim('me@example.com')
+        self.assertTrue(code_in_email())
+        take_code_from_email()
 
 
 if __name__ == '__main__':

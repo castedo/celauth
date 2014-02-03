@@ -1,34 +1,51 @@
 {% extends 'celauth/base.html' %}
 {% block content %}
 
-<h2>Enter your email confirmation code:</h2>
-<p>
-<form action="{% url 'celauth:confirm_email' '' %}" method="post">
-{{ fields.as_p }}
-<input type="submit" value="Confirm" class="btn btn-primary" />
-{% if next_url %}
-<input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
-{% endif %}
-{% csrf_token %}
-</form>
+<p class="alert alert-info">
+<strong>Check your email for your confirmation code.</strong>
+It may take a few minutes before your email message arrives, and it might be 
+misplaced in your spam folder.
 </p>
 
-{% if addresses_pending %}
-<h4>Email addressess pending confirmation</h4>
-<p>
-  <ul>
-  {{ addresses_pending | unordered_list }}
-  </ul>
-</p>
-<p>
-  <form action="{% url 'celauth:disclaim' %}" method="post">
-  <input type="submit" value="Cancel pending addresses" class="btn btn-default"/>
-  {% if next_url %}
-  <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
-  {% endif %}
-  {% csrf_token %}
-  </form>
-</p>
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h2 class="panel-title">Enter your email confirmation code:</h2>
+  </div>
+  <div class="panel-body">
+    <form action="{% url 'celauth:confirm_email' '' %}" method="post" class="form-inline">
+      {{ form.non_field_errors }}
+      <div class="form-group">
+        {{ form.code.errors }}
+        <label for="id_code" class="sr-only">Confirmation code:</label>
+        <input id="id_code" name="code" type="text" class="form-control" placeholder="Confirmation code"/>
+      </div>
+      <input type="submit" value="Confirm" class="btn btn-primary" />
+      {% if next_url %}
+      <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+      {% endif %}
+      {% csrf_token %}
+    </form>
+  </div>
+</div>
+
+{% if gate.addresses_pending %}
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Email addresses pending confirmation</h3>
+  </div>
+  <div class="panel-body">
+    <ul>
+    {{ gate.addresses_pending | unordered_list }}
+    </ul>
+    <form action="{% url 'celauth:disclaim' %}" method="post" class="form">
+    <input type="submit" value="Cancel pending addresses" class="btn btn-default"/>
+    {% if next_url %}
+    <input type="hidden" name="{{ next_name }}" value="{{ next_url }}"/>
+    {% endif %}
+    {% csrf_token %}
+    </form>
+  </div>
+</div>
 {% endif %}
 
 {% endblock content %}

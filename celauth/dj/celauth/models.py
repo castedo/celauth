@@ -76,6 +76,12 @@ class DjangoCelRegistry(CelRegistryBase):
         claims = EmailClaim.objects.filter(openid=loginid, credible=True)
         return set([c.email.address for c in claims])
 
+    def is_confirmed_claim(self, loginid, address):
+        qset = EmailClaim.objects.filter(openid=loginid,
+                                         email__address=address,
+                                         confirmed=True)
+        return qset.exists()
+
     def is_free_address(self, address):
         try:
             email = EmailAddress.objects.get(address=address)
