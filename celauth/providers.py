@@ -28,7 +28,6 @@ OPENID_PROVIDERS = OpenIDChoices([
   ('aol',           'AOL',           'https://openid.aol.com/'),
   ('stackexchange', 'StackExchange', 'https://openid.stackexchange.com/'),
   ('launchpad',     'Launchpad',     'https://login.launchpad.net/'),
-  ('myopenid',      'myOpenID',      'https://myopenid.com/'),
   ('intuit',        'Intuit',        'https://openid.intuit.com/openid/xrds'),
 ])
 

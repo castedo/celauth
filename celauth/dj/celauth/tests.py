@@ -22,20 +22,32 @@ class CelDjTestCase(TestCase):
         response = self.client.post(path, data, follow=True, HTTP_HOST='testserver')
         return response
 
-    def new_account(self, tld, id, email_id, next_url=None):
+    def new_account(self, tld, id, email_id):
+        next_url = '/there'
         response = self.login_as(tld, id, email_id, next_url)
         self.assertContains(response, "Create new account")
         data = {}
-        if next_url:
-            data['next'] = next_url
+        data['next'] = next_url
         path = reverse('celauth:create_account')
-        return self.client.post(path, data, HTTP_HOST='testserver')
+        response = self.client.post(path, data, HTTP_HOST='testserver')
+        self.assertRedirects(response, next_url, target_status_code=404)
+        response = self.follow_email_confirmation_link()
+        address = '%s@example.%s' % (email_id, tld)
+        self.assertContains(response, address)
 
     def logout(self):
         response = self.client.post(reverse('celauth:logout'))
         response = self.client.get(reverse('celauth:default'))
         self.assertContains(response, "Log in")
         return response
+
+    def follow_email_confirmation_link(self):
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, 'Confirmation Code')
+        url = mail.outbox[0].body.split('\n')[1] #url on 2nd line
+        code = mail.outbox[0].body.split('\n')[-1] #code on last line
+        return self.client.get(url, follow=True)
+
 
 class BasicTest(CelDjTestCase):
     def test_login_provider_text(self):
@@ -54,8 +66,7 @@ class BasicTest(CelDjTestCase):
         response = self.client.post(reverse('celauth:login'))
         self.assertContains(response, "OpenID")
 
-        response = self.new_account('com', 'myid', 'mybox', '/there')
-        self.assertRedirects(response, "/there", target_status_code=404)
+        self.new_account('com', 'myid', 'mybox')
 
         response = self.client.get(reverse('celauth:default'))
         self.assertContains(response, "Log out")
@@ -67,12 +78,7 @@ class BasicTest(CelDjTestCase):
         response = self.login_as('org', 'dude', 'dude', '/there')
         self.assertContains(response, "confirmation code")
         self.assertContains(response, "dude@example.org")
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].subject, 'Confirmation Code')
-
-        url = mail.outbox[0].body.split('\n')[1] #url on 2nd line
-        code = mail.outbox[0].body.split('\n')[-1] #code on last line
-        response = self.client.get(url)
+        response = self.follow_email_confirmation_link()
         self.assertContains(response, "Create new account")
 
         data = { 'next':'/there' }
@@ -95,7 +101,7 @@ class BasicTest(CelDjTestCase):
 
 class ExistingAccountTests(CelDjTestCase):
         def setUp(self):
-            self.new_account('com', 'myid', 'mybox', '/there')
+            self.new_account('com', 'myid', 'mybox')
             self.logout()
 
         def test_join_account(self):

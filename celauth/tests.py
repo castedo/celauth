@@ -114,10 +114,10 @@ class TestCelRegistry(CelRegistryBase):
         return account
 
     def add_address(self, account, address):
-        if address in self.address2account:
-            return False
-        self.address2account[address] = account
-        return True
+        if not address in self.address2account:
+            self.address2account[address] = account
+            return True
+        return account == self.address2account[address]
 
     def remove_address(self, account, address):
         if address == self.address2account.get(account, None):
@@ -182,12 +182,14 @@ class CelTestCase(unittest.TestCase):
         self.assertTrue(self.gate.can_create_account())
         self.gate.create_account()
         self.assertTrue(self.gate.account)
+        if code_in_email():
+            # even if confirmation was not required, confirm it anyway
+            self.gate.confirm_email(take_code_from_email())
 
 class NewAcountTests(CelTestCase):
     def test_new_account_credible_email(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
-        self.assertEqual(self.gate.addresses_pending(), ['joe@example.com'])
         self.assertEqual(self.registry.loginid2account, {'https://example.com/joe':1})
         self.assertEqual(self.registry.address2account, {'joe@example.com':1})
 
@@ -248,14 +250,13 @@ class ExistingAccountTests(CelTestCase):
     def test_2nd_account(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
-        self.assertEqual(self.gate.addresses_pending(), ['joe@example.com'])
         self.assertEqual(self.registry.loginid2account, {
             'https://example.com/me': 1,
-            'https://example.com/joe':2,
+            'https://example.com/joe': 2,
         })
         self.assertEqual(self.registry.address2account, {
-            'me@example.com':1,
-            'joe@example.com':2,
+            'me@example.com': 1,
+            'joe@example.com': 2,
         })
 
     def test_join_account(self):
