@@ -27,21 +27,49 @@ class AddressAccountConflict(AuthError):
         AuthError.__init__(self, "Email address assigned to different account")
 
 
+class CelLogin(object):
+    def __init__(self, registry_store, loginid):
+        self._store = registry_store
+        self._loginid = loginid
+
+    @property
+    def account(self):
+        return self._store.account(self._loginid)
+
+    def addresses_joinable(self):
+        if self.account:
+            return []
+        credibles = self._store.addresses_credible(self._loginid)
+        return [a for a in credibles if not self._store.is_free_address(a)]
+
+    def can_create_account(self):
+        if self.account:
+            return False
+        if self.addresses_joinable():
+            return False
+        if self._store.has_incredible_claims(self._loginid):
+            return False
+        return bool(self._store.addresses_credible(self._loginid))
+
+    def create_account(self):
+        account = self._store.create_account(self._loginid)
+        assert account
+        for addr in self._store.addresses_credible(self._loginid):
+            if self._store.is_free_address(addr):
+                self._store.assign(addr, account)
+
 class CelRegistry(object):
     def __init__(self, registry_store, mailer):
         self._registry = registry_store
         self._mailer = mailer
 
-    @classmethod
-    def _normalize_email(cls, email):
-        if email:
-            try:
-                email_name, domain_part = email.strip().rsplit('@', 1)
-            except ValueError:
-                pass
-            else:
-                email = '@'.join([email_name, domain_part.lower()])
-        return email
+    def get_login(self, loginid):
+        assert loginid
+        return CelLogin(self._registry, loginid)
+
+    def _equiv_loginids(self, loginid):
+        account = self._registry.account(loginid)
+        return self._registry.loginids(account) if account else [loginid]
 
     def _make_claim(self, loginid, email_address, credible):
         self._registry.claim(loginid, email_address, credible)
@@ -84,12 +112,11 @@ class AuthGate(CelRegistry):
 
     @property
     def account(self):
-        return self._registry.account(self.loginid)
+        return self.get_login(self.loginid).account if self.loginid else None
 
     @property
     def _loginids(self):
-        r = self._registry
-        return r.loginids(self.account) if self.account else [self.loginid]
+        return self._equiv_loginids(self.loginid)
 
     def addresses(self):
         return self._addresses(self._loginids)
@@ -101,11 +128,9 @@ class AuthGate(CelRegistry):
         return self._addresses_confirmed(self._loginids)
 
     def addresses_joinable(self):
-        if self.account:
-            return []
-        r = self._registry
-        credibles = r.addresses_credible(self.loginid)
-        return [a for a in credibles if not r.is_free_address(a)]
+        if not self.loginid:
+            return None
+        return self.get_login(self.loginid).addresses_joinable()
 
     def disclaim_pending(self):
         if self.account:
@@ -169,28 +194,28 @@ class AuthGate(CelRegistry):
                 session.account_update()
 
     def can_create_account(self):
-        if self.account or not self.loginid:
+        if not self.loginid:
             return False
-        registry = self._registry
-        if self.addresses_joinable():
-            return False
-        if registry.has_incredible_claims(self.loginid):
-            return False
-        return bool(registry.addresses_credible(self.loginid))
+        return self.get_login(self.loginid).can_create_account()
 
     def create_account(self):
         if not self.loginid:
             raise NotLoggedInError
         if self.account:
             raise AccountAlreadyExists
-        registry = self._registry
         if not self.can_create_account():
             raise AuthError("Account can not be created") 
-        account = registry.create_account(self.loginid)
-        assert account
-        for addr in registry.addresses_credible(self.loginid):
-            if registry.is_free_address(addr):
-                registry.assign(addr, account)
-        assert not registry.is_free_address(addr)
+        self.get_login(self.loginid).create_account()
         self._session.account_update()
+
+    @classmethod
+    def _normalize_email(cls, email):
+        if email:
+            try:
+                email_name, domain_part = email.strip().rsplit('@', 1)
+            except ValueError:
+                pass
+            else:
+                email = '@'.join([email_name, domain_part.lower()])
+        return email
 

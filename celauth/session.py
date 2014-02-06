@@ -18,24 +18,25 @@ class CelSession(object):
             self._store.loginids.append(loginid)
         self._store.update()
 
-    @property
-    def temp_loginid(self):
-        """Get the temporary loginid"""
-        loginids = self._store.loginids
-        assert(len(loginids) in [0, 1, 2])
-        return loginids[1] if len(loginids) > 1 else None
-
-    @loginid.setter
-    def temp_loginid(self, value):
-        """Set or clear the temporary loginid"""
-        loginids = self._store.loginids
-        assert(len(loginids) == 2)
-        if len(loginids) <= 2:
-            if value:
-                loginids[1] = value
-            else:
-                del loginids[1]
-            self._store.update()
+# TODO: either use temp_loginid for double auth state or remove
+#    @property
+#    def temp_loginid(self):
+#        """Get the temporary loginid"""
+#        loginids = self._store.loginids
+#        assert(len(loginids) in [0, 1, 2])
+#        return loginids[1] if len(loginids) > 1 else None
+#
+#    @loginid.setter
+#    def temp_loginid(self, value):
+#        """Set or clear the temporary loginid"""
+#        loginids = self._store.loginids
+#        assert(len(loginids) == 2)
+#        if len(loginids) <= 2:
+#            if value:
+#                loginids[1] = value
+#            else:
+#                del loginids[1]
+#            self._store.update()
 
     def clear(self):
         """Clear all session authentication state"""
