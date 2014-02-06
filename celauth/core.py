@@ -26,6 +26,19 @@ class AddressAccountConflict(AuthError):
     def __init__(self):
         AuthError.__init__(self, "Email address assigned to different account")
 
+class AccountConflict(AuthError):
+    def __init__(self):
+        AuthError.__init__(self, "Logins to different accounts can not be joined")
+
+def normalize_email(email):
+    if email:
+        try:
+            email_name, domain_part = email.strip().rsplit('@', 1)
+        except ValueError:
+            pass
+        else:
+            email = '@'.join([email_name, domain_part.lower()])
+    return email
 
 class CelLogin(object):
     def __init__(self, registry_store, loginid):
@@ -41,6 +54,16 @@ class CelLogin(object):
             return []
         credibles = self._store.addresses_credible(self._loginid)
         return [a for a in credibles if not self._store.is_free_address(a)]
+
+    def disclaim_pending(self):
+        for a in self._store.addresses_not_confirmed(self._loginid):
+            self._store.disclaim(self._loginid, a)
+
+    def confirmation_required(self):
+        for a in self._store.addresses_not_confirmed(self._loginid):
+            if self._store.assigned_account(a):
+                return True
+        return self._store.has_incredible_claims(self._loginid)
 
     def can_create_account(self):
         if self.account:
@@ -101,6 +124,42 @@ class CelRegistry(object):
             ret |= set(self._registry.addresses_confirmed(lid))
         return list(ret)
 
+    def _handle_openid(self, openid_case, addresses_to_skip):
+        address = normalize_email(openid_case.email)
+        new_loginid = self._registry.note_openid(openid_case)
+        if address and address not in addresses_to_skip:
+            self._make_claim(new_loginid, address, openid_case.credible)
+        return new_loginid
+
+    def _join_logins(self, loginid, new_loginid):
+        """
+        Raises:
+            AccountConflict
+        """
+        account = self._registry.account(loginid)
+        new_account = self._registry.account(new_loginid)
+        if account and new_account:
+            raise AccountConflict
+        if account and new_loginid:
+            self._registry.set_account(new_loginid, account)
+        if new_account and loginid:
+            self._registry.set_account(loginid, new_account)
+
+    def _handle_confirmation(self, code, loginid):
+        registry = self._registry
+        address = registry.confirm_email(loginid, code)
+        if not address:
+            raise InvalidConfirmationCode
+        account = self._registry.account(loginid)
+        if account:
+            if not registry.add_address(account, address):
+                raise AddressAccountConflict
+        else:
+            account = registry.assigned_account(address)
+            if account:
+                registry.set_account(self.loginid, account)
+
+
 class AuthGate(CelRegistry):
     def __init__(self, cel_registry, session_store, mailer):
         self._session = CelSession(session_store)
@@ -133,43 +192,32 @@ class AuthGate(CelRegistry):
         return self.get_login(self.loginid).addresses_joinable()
 
     def disclaim_pending(self):
-        if self.account:
-            for a in self._addresses_pending(self._loginids):
-                self._registry.remove_address(self.account, a)
-            self._registry.remove_address(self.account, a)
         for lid in self._loginids:
-            for a in self._registry.addresses_not_confirmed(lid):
-                self._registry.disclaim(lid, a)
-
-    def new_auth(self, openid_case):
-        self.login(openid_case)
+            self.get_login(lid).disclaim_pending()
 
     def login(self, openid_case):
-        new_loginid = self._registry.note_openid(openid_case)
-        address = self._normalize_email(openid_case.email)
-        if address and address not in self.addresses():
-            self._make_claim(new_loginid, address, openid_case.credible)
-        account = self._registry.account(new_loginid)
-        if account and self._session.loginid:
-            self._registry.set_account(self._session.loginid, account)
+        """
+        Raises:
+            AccountConflict
+        """
+        new_loginid = self._handle_openid(openid_case, self.addresses())
+        self._join_logins(self.loginid, new_loginid)
         self._session.set_loginid(new_loginid)
 
     def logout(self):
         self._session.clear()
 
     def claim(self, email_address):
-        address = self._normalize_email(email_address)
+        address = normalize_email(email_address)
         if self.loginid:
             self._make_claim(self.loginid, address, False)
         else:
             self._send_code(address)
 
     def confirmation_required(self):
-        registry = self._registry
-        for a in registry.addresses_not_confirmed(self.loginid):
-            if registry.assigned_account(a):
-                return True
-        return registry.has_incredible_claims(self.loginid)
+        if not self.loginid:
+            return False
+        return self.get_login(self.loginid).confirmation_required()
 
     def confirm_email(self, code):
         """Register that login is confirming email confirmation code.
@@ -178,20 +226,8 @@ class AuthGate(CelRegistry):
             AddressAccountConflict: Email address is already assigned to
                 another acccount.
         """
-        registry = self._registry
-        session = self._session
-        address = registry.confirm_email(self.loginid, code)
-        if not address:
-            raise InvalidConfirmationCode
-        account = registry.account(self.loginid)
-        if account:
-            if not registry.add_address(account, address):
-                raise AddressAccountConflict
-        else:
-            account = registry.assigned_account(address)
-            if account:
-                registry.set_account(self.loginid, account)
-                session.account_update()
+        self._handle_confirmation(code, self.loginid)
+        self._session.account_update()
 
     def can_create_account(self):
         if not self.loginid:
@@ -207,15 +243,4 @@ class AuthGate(CelRegistry):
             raise AuthError("Account can not be created") 
         self.get_login(self.loginid).create_account()
         self._session.account_update()
-
-    @classmethod
-    def _normalize_email(cls, email):
-        if email:
-            try:
-                email_name, domain_part = email.strip().rsplit('@', 1)
-            except ValueError:
-                pass
-            else:
-                email = '@'.join([email_name, domain_part.lower()])
-        return email
 

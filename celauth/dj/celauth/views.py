@@ -135,7 +135,7 @@ def login_return(request):
     if not isinstance(case, OpenIDCase):
         return failure(request, str(case))
     auth = get_auth_gate(request)
-    auth.new_auth(case)
+    auth.login(case)
     return login_response(request, auth)
 
 
