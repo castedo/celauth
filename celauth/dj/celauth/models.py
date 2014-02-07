@@ -2,6 +2,12 @@
 from datetime import datetime, timedelta
 from django.db import models
 
+def delete_registry_data():
+    EmailAddress.objects.all().delete()
+    OpenID.objects.all().delete()
+    EmailClaim.objects.all().delete()
+    ConfirmationCode.objects.all().delete()
+
 class OpenIDNonce(models.Model):
     server_url = models.URLField(max_length=255)
     timestamp  = models.IntegerField()
@@ -52,6 +58,19 @@ class DjangoCelModelStore(object):
     def __init__(self, accountant):
         self._accountant = accountant
 
+    def all_uris_by_account(self):
+        """For testing"""
+        inverse = dict()
+        for openid in OpenID.objects.all():
+            if openid.account:
+                uris = inverse.setdefault(openid.account, set())
+                uris.add(openid.claimed_id)
+        for email in EmailAddress.objects.all():
+            if email.account:
+                uris = inverse.setdefault(email.account, set())
+                uris.add('mailto:' + email.address)
+        return set(map(frozenset,inverse.values()))
+    
     def loginids(self, account):
         return OpenID.objects.filter(account=account)
 
@@ -159,7 +178,13 @@ class DjangoCelModelStore(object):
         loginid.account = account
         loginid.save()
 
-    def create_account(self, openid):
+    def create_account(self, loginid):
+        if isinstance(loginid, str) and loginid.startswith('mailto:'):
+            address = loginid[7:]
+            account = self._accountant.create_account([address])
+            self.add_address(account, address)
+            return account
+        openid = loginid
         openid.account = self._accountant.create_account(self.addresses(openid))
         openid.save()
         return openid.account

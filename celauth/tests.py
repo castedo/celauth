@@ -173,8 +173,7 @@ def openid(tld, name, address=None):
 
 class CelTestCase(unittest.TestCase):
     def setUp(self):
-        self.store = TestCelRegistryStore()
-        self.gate = make_auth_gate(self.store, FakeMailer(), TestSessionStore())
+        self.skipTest("CelTestCase is for inheriting, with setUp overridden ")
 
     def login_as(self, loginid):
         self.gate.login(loginid)
@@ -199,7 +198,6 @@ class CelTestCase(unittest.TestCase):
             # even if confirmation was not required, confirm it anyway
             self.gate.confirm_email(take_code_from_email())
 
-class NewAcountTests(CelTestCase):
     def test_new_account_credible_email(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
@@ -228,17 +226,13 @@ class NewAcountTests(CelTestCase):
         gate.disclaim_pending()
         self.assertFalse(gate.addresses())
 
-class AssignedAccountTests(CelTestCase):
-    def setUp(self):
-        CelTestCase.setUp(self)
+    def login_to_assigned(self, loginid):
         self.store.create_account('mailto:admin@example.org')
         self.store.create_account('mailto:admin@example.com')
         self.assertEqual(self.store.all_uris_by_account(), set([
             frozenset(['mailto:admin@example.org']),
             frozenset(['mailto:admin@example.com']),
                         ]))
-
-    def login_to_assigned(self, loginid):
         self.assertFalse(self.gate.loginid)
         self.login_as(loginid)
         self.assertFalse(self.gate.account)
@@ -255,16 +249,9 @@ class AssignedAccountTests(CelTestCase):
     def test_credible_email(self):
         self.login_to_assigned(openid('com', 'admin'))
 
-class ExistingAccountTests(CelTestCase):
-    def setUp(self):
-        CelTestCase.setUp(self)
+    def test_2nd_account(self):
         self.new_account(openid('com', 'me'))
         self.gate.logout()
-        self.assertEqual(self.store.all_uris_by_account(), set([
-            frozenset(['mailto:me@example.com', 'https://example.com/me']),
-                        ]))
-
-    def test_2nd_account(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
         self.assertEqual(self.store.all_uris_by_account(), set([
@@ -273,6 +260,8 @@ class ExistingAccountTests(CelTestCase):
                         ]))
 
     def test_join_account(self):
+        self.new_account(openid('com', 'me'))
+        self.gate.logout()
         self.login_as(openid('com', 'me2', 'me@example.com'))
         self.assertFalse(self.gate.account)
         self.assertFalse(self.gate.confirmation_required())
@@ -290,13 +279,20 @@ class ExistingAccountTests(CelTestCase):
             ]),
                         ]))
 
-class EmailTests(CelTestCase):
     def test_anon_address_entry(self):
         self.assertFalse(code_in_email())
         self.gate.claim('me@example.com')
         self.assertTrue(code_in_email())
         take_code_from_email()
 
+class FakeStoreTestCase(CelTestCase):
+    def setUp(self):
+        self.store = TestCelRegistryStore()
+        self.gate = make_auth_gate(self.store, FakeMailer(), TestSessionStore())
+
+    def tearDown(self):
+        self.store = None
+        self.gate = None
 
 if __name__ == '__main__':
     unittest.main()
