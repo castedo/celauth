@@ -49,6 +49,10 @@ class CelLogin(object):
     def account(self):
         return self._store.account(self._loginid)
 
+    @property
+    def address(self):
+        return self._store.get_address(self._loginid)
+
     def addresses_joinable(self):
         if self.account:
             return []
@@ -90,16 +94,11 @@ class CelRegistry(object):
         account = self._store.account(loginid)
         return self._store.loginids(account) if account else [loginid]
 
-    def _make_claim(self, loginid, email_address):
-        self._store.claim(loginid, email_address)
+    def _send_code(self, address):
         # os.urandom(5) will produce about 1 trillion possibilities
-        if not self._store.is_confirmed_claim(loginid, email_address):
-            self._send_code(email_address)
-
-    def _send_code(self, email_address):
         code = b32encode(os.urandom(5))
-        self._store.save_confirmation_code(code, email_address)
-        self._mailer.send_code(code, email_address)
+        self._store.save_confirmation_code(code, address)
+        self._mailer.send_code(code, address)
 
     def _addresses(self, loginids):
         ret = set()
@@ -120,11 +119,21 @@ class CelRegistry(object):
             ret |= set(self._store.addresses_confirmed(lid))
         return list(ret)
 
-    def _handle_openid(self, openid_case, addresses_to_skip):
-        address = normalize_email(openid_case.email)
+    def remind_pending_claim(self, loginid):
+        login = self.get_login(loginid)
+        if login.address:
+            if login.account and not self._store.is_free_address(login.address):
+                # either loginid and it's address are assigned to the same account
+                # or they both point to different accounts
+                # in either case, there is no point in sending a confirmation code
+                return
+            self._send_code(login.address)
+
+    def _handle_openid(self, openid_case):
         new_loginid = self._store.note_openid(openid_case)
-        if address and address not in addresses_to_skip:
-            self._make_claim(new_loginid, address)
+        address = normalize_email(openid_case.email)
+        if address:
+            self._store.set_address(new_loginid, address)
         return new_loginid
 
     def _join_logins(self, loginid, new_loginid):
@@ -196,8 +205,9 @@ class AuthGate():
         Raises:
             AccountConflict
         """
-        new_loginid = self._registry._handle_openid(openid_case, self.addresses())
+        new_loginid = self._registry._handle_openid(openid_case)
         self._registry._join_logins(self.loginid, new_loginid)
+        self._registry.remind_pending_claim(new_loginid)
         self._session.set_loginid(new_loginid)
 
     def logout(self):
@@ -205,10 +215,7 @@ class AuthGate():
 
     def claim(self, email_address):
         address = normalize_email(email_address)
-        if self.loginid:
-            self._registry._make_claim(self.loginid, address)
-        else:
-            self._registry._send_code(address)
+        self._registry._send_code(address)
 
     def confirmation_required(self):
         if not self.loginid:

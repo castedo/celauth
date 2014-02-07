@@ -95,9 +95,6 @@ class TestCelRegistryStore(object):
         confirmed = loginid in self.confirms
         return [ address ] if address and confirmed else []
 
-    def is_confirmed_claim(self, loginid, address):
-        return self.claims.get(loginid, None) == address and loginid in self.confirms
-
     def is_free_address(self, address):
         return address not in self.address2account.keys()
 
@@ -110,7 +107,11 @@ class TestCelRegistryStore(object):
         self.loginid2account.setdefault(loginid, None)
         return loginid
 
-    def claim(self, loginid, address):
+    def get_address(self, loginid):
+        assert loginid
+        return self.claims.get(loginid, None)
+
+    def set_address(self, loginid, address):
         self.claims[loginid] = address
 
     def save_confirmation_code(self, code, address):

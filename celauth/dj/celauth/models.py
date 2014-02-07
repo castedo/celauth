@@ -84,10 +84,6 @@ class DjangoCelModelStore(object):
         assert loginid
         return [loginid.email.address] if loginid.email and loginid.confirmed else []
 
-    def is_confirmed_claim(self, loginid, address):
-        assert loginid
-        return loginid.email and loginid.email.address == address and loginid.confirmed
-
     def is_free_address(self, address):
         try:
             email = EmailAddress.objects.get(address=address)
@@ -106,7 +102,11 @@ class DjangoCelModelStore(object):
                                     display_id = openid_case.display_id)
         return ret
 
-    def claim(self, loginid, email_address):
+    def get_address(self, loginid):
+        assert loginid
+        return loginid.email.address if loginid and loginid.email else None
+
+    def set_address(self, loginid, email_address):
         assert loginid
         email = self._get_email_address(email_address)
         loginid.email = email
