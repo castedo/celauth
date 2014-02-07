@@ -55,10 +55,6 @@ class CelLogin(object):
         credibles = self._store.addresses_credible(self._loginid)
         return [a for a in credibles if not self._store.is_free_address(a)]
 
-    def disclaim_pending(self):
-        for a in self._store.addresses_not_confirmed(self._loginid):
-            self._store.disclaim(self._loginid, a)
-
     def confirmation_required(self):
         for a in self._store.addresses_not_confirmed(self._loginid):
             if self._store.assigned_account(a):
@@ -196,10 +192,6 @@ class AuthGate():
         if not self.loginid:
             return None
         return self._registry.get_login(self.loginid).addresses_joinable()
-
-    def disclaim_pending(self):
-        for lid in self._loginids:
-            self._registry.get_login(lid).disclaim_pending()
 
     def login(self, openid_case):
         """

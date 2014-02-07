@@ -107,14 +107,6 @@ class BasicTest(CelDjTestCase):
 
         self.logout()
 
-    def test_email_disclaim(self):
-        response = self.login_as('org', 'dude', 'bad', '/there')
-        self.assertContains(response, "confirmation code")
-        self.assertContains(response, "bad@example.org")
-
-        response = self.client.post(reverse('celauth:disclaim'))
-        self.assertContains(response, "Enter your email address")
-
 class ExistingAccountTests(CelDjTestCase):
         def setUp(self):
             self.new_account('com', 'myid', 'mybox')

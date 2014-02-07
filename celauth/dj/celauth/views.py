@@ -214,13 +214,6 @@ def enter_code_response(request, gate, invalid_confirmation_code=None, check_ema
 
 
 @require_http_methods(["POST"])
-def disclaim(request):
-    gate = get_auth_gate(request)
-    gate.disclaim_pending()
-    return login_response(request, gate)
-
-
-@require_http_methods(["POST"])
 def logout(request):
     auth = get_auth_gate(request)
     auth.logout()

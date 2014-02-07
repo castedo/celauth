@@ -225,33 +225,12 @@ class CelTestCase(unittest.TestCase):
             # even if confirmation was not required, confirm it anyway
             self.gate.confirm_email(take_code_from_email())
 
-    def test_new_account_credible_email(self):
+    def test_new_account(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
         self.assertEqual(self.store.all_uris_by_account(), set([
             frozenset(['mailto:joe@example.com', 'https://example.com/joe']),
                         ]))
-
-    def test_new_account_incredible_email(self):
-        self.new_account(openid('org', 'joe'))
-        self.assertEqual(self.gate.addresses(), ['joe@example.org'])
-        self.assertEqual(self.gate.addresses_confirmed(), ['joe@example.org'])
-        self.assertEqual(self.store.all_uris_by_account(), set([
-            frozenset(['mailto:joe@example.org', 'https://example.org/joe']),
-                        ]))
-
-    def test_email_dislclaim(self):
-        gate = self.gate
-        self.assertFalse(gate.loginid)
-        self.login_as(openid('org', 'joe'))
-        self.assertFalse(gate.account)
-        self.assertTrue(gate.addresses())
-        self.assertTrue(gate.confirmation_required())
-        self.assertFalse(gate.can_create_account())
-        self.assertTrue(code_in_email())
-        take_code_from_email()
-        gate.disclaim_pending()
-        self.assertFalse(gate.addresses())
 
     def login_to_assigned(self, loginid):
         self.store.create_account('mailto:admin@example.org')
