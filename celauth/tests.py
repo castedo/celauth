@@ -9,7 +9,7 @@ formalization of the Claimed Email Login model.
 # use unittest2 to remove Django dependency on Python 2.6 
 from django.utils import unittest
 
-from core import AuthGate, CelRegistry, CelSession
+from core import make_auth_gate
 from session import CelSession
 from celauth import OpenIDCase
 
@@ -44,6 +44,19 @@ class TestCelRegistryStore(object):
         self.credibles = set()
         self.confirms = set()
 
+    def all_uris_by_account(self):
+        """For testing"""
+        inverse = dict()
+        for uri, account in self.loginid2account.iteritems():
+            if account:
+                uris = inverse.setdefault(account, set())
+                uris.add(uri)
+        for address, account in self.address2account.iteritems():
+            if account:
+                uris = inverse.setdefault(account, set())
+                uris.add('mailto:' + address)
+        return set(map(frozenset,inverse.values()))
+    
     def loginids(self, account):
         lids = self.loginids
         return [l for l, a in self.loginid2account.items() if a == account]
@@ -125,8 +138,12 @@ class TestCelRegistryStore(object):
 
     def create_account(self, loginid):
         accts = self.loginid2account.values() + self.address2account.values()
-        account_num = len(set(accts))
-        self.loginid2account[loginid] = account_num
+        account_num = len(set(accts)) + 1
+        if loginid.startswith('mailto:'):
+            address = loginid[7:]
+            self.address2account[address] = account_num
+        else:
+            self.loginid2account[loginid] = account_num
         return account_num
 
     def has_incredible_claims(self, loginid):
@@ -156,11 +173,8 @@ def openid(tld, name, address=None):
 
 class CelTestCase(unittest.TestCase):
     def setUp(self):
-        self.registry = TestCelRegistryStore()
-        #TODO test with CelRegistry instead of TestCelRegistryStore
-        registry = CelRegistry(self.registry, FakeMailer())
-        session = CelSession(TestSessionStore())
-        self.gate = AuthGate(registry, session)
+        self.store = TestCelRegistryStore()
+        self.gate = make_auth_gate(self.store, FakeMailer(), TestSessionStore())
 
     def login_as(self, loginid):
         self.gate.login(loginid)
@@ -189,15 +203,17 @@ class NewAcountTests(CelTestCase):
     def test_new_account_credible_email(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
-        self.assertEqual(self.registry.loginid2account, {'https://example.com/joe':1})
-        self.assertEqual(self.registry.address2account, {'joe@example.com':1})
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset(['mailto:joe@example.com', 'https://example.com/joe']),
+                        ]))
 
     def test_new_account_incredible_email(self):
         self.new_account(openid('org', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.org'])
         self.assertEqual(self.gate.addresses_confirmed(), ['joe@example.org'])
-        self.assertEqual(self.registry.loginid2account, {'https://example.org/joe':1})
-        self.assertEqual(self.registry.address2account, {'joe@example.org':1})
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset(['mailto:joe@example.org', 'https://example.org/joe']),
+                        ]))
 
     def test_email_dislclaim(self):
         gate = self.gate
@@ -215,10 +231,12 @@ class NewAcountTests(CelTestCase):
 class AssignedAccountTests(CelTestCase):
     def setUp(self):
         CelTestCase.setUp(self)
-        self.registry.address2account = {
-            'admin@example.org':1,
-            'admin@example.com':2,
-        }
+        self.store.create_account('mailto:admin@example.org')
+        self.store.create_account('mailto:admin@example.com')
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset(['mailto:admin@example.org']),
+            frozenset(['mailto:admin@example.com']),
+                        ]))
 
     def login_to_assigned(self, loginid):
         self.assertFalse(self.gate.loginid)
@@ -242,21 +260,17 @@ class ExistingAccountTests(CelTestCase):
         CelTestCase.setUp(self)
         self.new_account(openid('com', 'me'))
         self.gate.logout()
-        self.assertEqual(self.registry.loginid2account, {
-            'https://example.com/me':1
-        })
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset(['mailto:me@example.com', 'https://example.com/me']),
+                        ]))
 
     def test_2nd_account(self):
         self.new_account(openid('com', 'joe'))
         self.assertEqual(self.gate.addresses(), ['joe@example.com'])
-        self.assertEqual(self.registry.loginid2account, {
-            'https://example.com/me': 1,
-            'https://example.com/joe': 2,
-        })
-        self.assertEqual(self.registry.address2account, {
-            'me@example.com': 1,
-            'joe@example.com': 2,
-        })
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset(['mailto:me@example.com', 'https://example.com/me']),
+            frozenset(['mailto:joe@example.com', 'https://example.com/joe']),
+                        ]))
 
     def test_join_account(self):
         self.login_as(openid('com', 'me2', 'me@example.com'))
@@ -264,15 +278,17 @@ class ExistingAccountTests(CelTestCase):
         self.assertFalse(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
         self.assertTrue(self.gate.addresses_joinable())
-        self.assertEqual(self.registry.loginid2account, {
-            'https://example.com/me': 1,
-            'https://example.com/me2': None,
-        })
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset(['mailto:me@example.com', 'https://example.com/me']),
+                        ]))
         self.login_as(openid('com', 'me'))
-        self.assertEqual(self.registry.loginid2account, {
-            'https://example.com/me': 1,
-            'https://example.com/me2': 1,
-        })
+        self.assertEqual(self.store.all_uris_by_account(), set([
+            frozenset([
+                'mailto:me@example.com',
+                'https://example.com/me',
+                'https://example.com/me2',
+            ]),
+                        ]))
 
 class EmailTests(CelTestCase):
     def test_anon_address_entry(self):

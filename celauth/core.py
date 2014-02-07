@@ -83,50 +83,50 @@ class CelLogin(object):
 
 class CelRegistry(object):
     def __init__(self, registry_store, mailer):
-        self._registry = registry_store
+        self._store = registry_store
         self._mailer = mailer
 
     def get_login(self, loginid):
         assert loginid
-        return CelLogin(self._registry, loginid)
+        return CelLogin(self._store, loginid)
 
     def _equiv_loginids(self, loginid):
-        account = self._registry.account(loginid)
-        return self._registry.loginids(account) if account else [loginid]
+        account = self._store.account(loginid)
+        return self._store.loginids(account) if account else [loginid]
 
     def _make_claim(self, loginid, email_address, credible):
-        self._registry.claim(loginid, email_address, credible)
+        self._store.claim(loginid, email_address, credible)
         # os.urandom(5) will produce about 1 trillion possibilities
-        if not self._registry.is_confirmed_claim(loginid, email_address):
+        if not self._store.is_confirmed_claim(loginid, email_address):
             self._send_code(email_address)
 
     def _send_code(self, email_address):
         code = b32encode(os.urandom(5))
-        self._registry.save_confirmation_code(code, email_address)
+        self._store.save_confirmation_code(code, email_address)
         self._mailer.send_code(code, email_address)
 
     def _addresses(self, loginids):
         ret = set()
         for lid in loginids:
-            ret |= set(self._registry.addresses(lid))
+            ret |= set(self._store.addresses(lid))
         return list(ret)
 
     def _addresses_pending(self, loginids):
         ret = set()
         for lid in loginids:
-            ret |= set(self._registry.addresses_not_confirmed(lid))
+            ret |= set(self._store.addresses_not_confirmed(lid))
         #TODO fix bug: should return addresss not confirmed by all loginids, not any one loginid
         return list(ret)
 
     def _addresses_confirmed(self, loginids):
         ret = set()
         for lid in loginids:
-            ret |= set(self._registry.addresses_confirmed(lid))
+            ret |= set(self._store.addresses_confirmed(lid))
         return list(ret)
 
     def _handle_openid(self, openid_case, addresses_to_skip):
         address = normalize_email(openid_case.email)
-        new_loginid = self._registry.note_openid(openid_case)
+        new_loginid = self._store.note_openid(openid_case)
         if address and address not in addresses_to_skip:
             self._make_claim(new_loginid, address, openid_case.credible)
         return new_loginid
@@ -136,21 +136,21 @@ class CelRegistry(object):
         Raises:
             AccountConflict
         """
-        account = self._registry.account(loginid)
-        new_account = self._registry.account(new_loginid)
+        account = self._store.account(loginid)
+        new_account = self._store.account(new_loginid)
         if account and new_account:
             raise AccountConflict
         if account and new_loginid:
-            self._registry.set_account(new_loginid, account)
+            self._store.set_account(new_loginid, account)
         if new_account and loginid:
-            self._registry.set_account(loginid, new_account)
+            self._store.set_account(loginid, new_account)
 
     def _handle_confirmation(self, code, loginid):
-        registry = self._registry
+        registry = self._store
         address = registry.confirm_email(loginid, code)
         if not address:
             raise InvalidConfirmationCode
-        account = self._registry.account(loginid)
+        account = self._store.account(loginid)
         if account:
             if not registry.add_address(account, address):
                 raise AddressAccountConflict
