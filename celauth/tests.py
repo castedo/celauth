@@ -29,8 +29,16 @@ class TestSessionStore(object):
         """
         pass
 
+class TestCelLoginStore(object):
+    """ Implementation of CEL loginid state using basic Python types
+    """
+    def __init__(self, loginid, account, address):
+        self.loginid = loginid
+        self.account = account
+        self.address = address
+
 class TestCelRegistryStore(object):
-    """ Implementation of CEL registry state using simple Python dictionaries and sets
+    """ Implementation of CEL registry state using simple Python dictionaries
     """
 
     def __init__(self):
@@ -40,9 +48,12 @@ class TestCelRegistryStore(object):
         self.loginid2account = dict()
         self.address2account = dict()
         self.code2address = dict()
-        self.claims = set()
-        self.credibles = set()
-        self.confirms = set()
+        
+        self.claims = dict()
+        """Mapping from loginids to addresses"""
+
+        self.credibles = set() # of loginids
+        self.confirms = set() # of loginids
 
     def all_uris_by_account(self):
         """For testing"""
@@ -61,24 +72,37 @@ class TestCelRegistryStore(object):
         lids = self.loginids
         return [l for l, a in self.loginid2account.items() if a == account]
 
+    def get_login(self, loginid):
+        assert loginid
+        address = self.claims.get(loginid, None)
+        account = self.loginid2account.get(loginid, None)
+        return TestCelLoginStore(loginid, account, address)
+
     def account(self, loginid):
         return self.loginid2account[loginid] if loginid else None
 
     def addresses(self, loginid):
-        return [a for (l, a) in self.claims if l == loginid]
+        address = self.claims.get(loginid, None)
+        return [ address ] if address else []
 
     def addresses_not_confirmed(self, loginid):
-        pendings = self.claims - self.confirms
-        return [a for (l, a) in pendings if l == loginid]
+        #TODO move this logic up into CelRegistry
+        address = self.claims.get(loginid, None)
+        confirmed = loginid in self.confirms
+        return [address] if address and not confirmed else []
 
     def addresses_confirmed(self, loginid):
-        return [a for (l, a) in self.confirms if l == loginid]
+        address = self.claims.get(loginid, None)
+        confirmed = loginid in self.confirms
+        return [ address ] if address and confirmed else []
 
     def addresses_credible(self, loginid):
-        return [a for (l, a) in self.credibles if l == loginid]
+        address = self.claims.get(loginid, None)
+        credible = loginid in self.credibles
+        return [ address ] if address and credible else []
 
     def is_confirmed_claim(self, loginid, address):
-        return (loginid, address) in self.confirms
+        return self.claims.get(loginid, None) == address and loginid in self.confirms
 
     def is_free_address(self, address):
         return address not in self.address2account.keys()
@@ -93,15 +117,19 @@ class TestCelRegistryStore(object):
         return loginid
 
     def claim(self, loginid, address, credible):
-        self.claims.add((loginid, address))
+        self.claims[loginid] = address
         if credible:
-            self.credibles.add((loginid, address))
+            self.credibles.add(loginid)
 
     def disclaim(self, loginid, address):
-        claim = (loginid, address)
-        self.confirms.discard(claim)
-        self.credibles.discard(claim)
-        self.claims.discard(claim)
+        #TODO simplify semantics of disclaim
+        if loginid in self.claims:
+            if self.claims[loginid] == address:
+                del self.claims[loginid]
+                if loginid in self.confirms:
+                     del self.confirms[loginid]
+                if loginid in self.credibles:
+                    del self.credibles[loginid]
 
     def save_confirmation_code(self, code, address):
         assert code not in self.code2address
@@ -112,9 +140,9 @@ class TestCelRegistryStore(object):
             #TODO should raise exception
             return None
         address = self.code2address[code]
-        self.claims.add((loginid, address))
-        self.credibles.add((loginid, address))
-        self.confirms.add((loginid, address))
+        self.claims[loginid] = address
+        self.credibles.add(loginid)
+        self.confirms.add(loginid)
         return address
 
     def assigned_account(self, address):
@@ -147,8 +175,7 @@ class TestCelRegistryStore(object):
         return account_num
 
     def has_incredible_claims(self, loginid):
-        incredibles = self.claims - self.credibles
-        return len([l for (l, a) in incredibles if l == loginid]) > 0
+        return loginid in self.claims and loginid not in self.credibles
 
 class FakeMailer(object):
     last_code = None
