@@ -5,7 +5,6 @@ from django.db import models
 def delete_registry_data():
     EmailAddress.objects.all().delete()
     OpenID.objects.all().delete()
-    EmailClaim.objects.all().delete()
     ConfirmationCode.objects.all().delete()
 
 class OpenIDNonce(models.Model):
@@ -38,16 +37,12 @@ class OpenID(models.Model):
     claimed_id = models.URLField(max_length=255, primary_key=True)
     display_id = models.URLField(max_length=255)
     account = models.PositiveIntegerField(blank=True, null=True, db_index=True)
-    claims = models.ManyToManyField(EmailAddress, through='EmailClaim')
+    email = models.ForeignKey(EmailAddress, blank=True, null=True)
+    credible = models.BooleanField(default=False)
+    confirmed = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.display_id
-
-class EmailClaim(models.Model):
-    openid = models.ForeignKey(OpenID)
-    email = models.ForeignKey(EmailAddress)
-    credible = models.BooleanField(default=False)
-    confirmed = models.BooleanField(default=False)
 
 class ConfirmationCode(models.Model):
     email = models.ForeignKey(EmailAddress)
@@ -78,27 +73,25 @@ class DjangoCelModelStore(object):
         return loginid.account if loginid else None
 
     def addresses(self, loginid):
-        #TODO order addresses with ID's email (if known) first, then by date
-        claims = EmailClaim.objects.filter(openid=loginid)
-        return [c.email.address for c in claims]
+        assert loginid
+        email = loginid.email
+        return [email.address] if email else []
 
     def addresses_not_confirmed(self, loginid):
-        claims = EmailClaim.objects.filter(openid=loginid, confirmed=False)
-        return set([c.email.address for c in claims])
+        assert loginid
+        return [loginid.email.address] if loginid.email and not loginid.confirmed else []
 
     def addresses_confirmed(self, loginid):
-        claims = EmailClaim.objects.filter(openid=loginid, confirmed=True)
-        return set([c.email.address for c in claims])
+        assert loginid
+        return [loginid.email.address] if loginid.email and loginid.confirmed else []
 
     def addresses_credible(self, loginid):
-        claims = EmailClaim.objects.filter(openid=loginid, credible=True)
-        return set([c.email.address for c in claims])
+        assert loginid
+        return [loginid.email.address] if loginid.email and loginid.credible else []
 
     def is_confirmed_claim(self, loginid, address):
-        qset = EmailClaim.objects.filter(openid=loginid,
-                                         email__address=address,
-                                         confirmed=True)
-        return qset.exists()
+        assert loginid
+        return loginid.email and loginid.email.address == address and loginid.confirmed
 
     def is_free_address(self, address):
         try:
@@ -121,16 +114,18 @@ class DjangoCelModelStore(object):
     def claim(self, loginid, email_address, credible):
         assert loginid
         email = self._get_email_address(email_address)
-        claim = self._get_claim(loginid, email)
+        loginid.email = email
         if credible:
-            claim.credible = True 
-            claim.save()
+            loginid.credible = True 
+            loginid.save()
 
     def disclaim(self, loginid, email_address):
         assert loginid
-        email = self._get_email_address(email_address)
-        claim = self._get_claim(loginid, email)
-        claim.delete()
+        if loginid.email and loginid.email.address == email_address:
+            loginid.email = None
+            loginid.credible = False
+            loginid.confirmed = False
+            loginid.save()
 
     def save_confirmation_code(self, code, email_address):
         expire = datetime.utcnow() + timedelta(hours=12)
@@ -140,14 +135,18 @@ class DjangoCelModelStore(object):
 
     def confirm_email(self, loginid, code):
         try:
+            assert loginid
             rec = ConfirmationCode.objects.get(code=code)
             if datetime.utcnow() > rec.expiration:
                 return False
-            claim = self._get_claim(loginid, rec.email)
-            claim.credible = True
-            claim.confirmed = True
-            claim.save()
-            return claim.email.address
+            assert loginid.email == rec.email
+            if loginid.email == rec.email:
+                loginid.credible = True
+                loginid.confirmed = True
+                loginid.save()
+                return loginid.email.address
+            else:
+                return None
         except ConfirmationCode.DoesNotExist:
             return None
 
@@ -179,6 +178,7 @@ class DjangoCelModelStore(object):
         loginid.save()
 
     def create_account(self, loginid):
+        assert loginid
         if isinstance(loginid, str) and loginid.startswith('mailto:'):
             address = loginid[7:]
             account = self._accountant.create_account([address])
@@ -190,14 +190,10 @@ class DjangoCelModelStore(object):
         return openid.account
 
     def has_incredible_claims(self, openid):
-        return openid.claims.filter(emailclaim__credible=False).exists()
+        assert openid
+        return openid.email and not openid.credible
 
     def _get_email_address(self, address):
         ret, new = EmailAddress.objects.get_or_create(pk=address)
-        return ret
-
-    def _get_claim(self, openid, address_rec):
-        ret, new = EmailClaim.objects.get_or_create(openid=openid,
-                                                    email=address_rec)
         return ret
 

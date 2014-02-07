@@ -8,7 +8,7 @@ Unit Testing Code
 
 .. automodule:: celauth.tests
 
-.. autoclass:: celauth.tests.TestCelRegistry
+.. autoclass:: celauth.tests.TestCelRegistryStore
    :members: __init__
 
 
@@ -52,4 +52,14 @@ credible claims    solid lines
 incredible claims  red dashed lines
 =================  =================
 
+
+Account Creation without confirmation
++++++++++++++++++++++++++++++++++++++
+
+.. graphviz:: _build/not_confirmed.dot
+
+Confirmation before Account Creation
+++++++++++++++++++++++++++++++++++++
+
+.. graphviz:: _build/confirmed_before.dot
 

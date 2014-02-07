@@ -1,6 +1,6 @@
 #include "celauth.dot.h"
 
-graph {
+digraph {
   rankdir=TB;
 
   subgraph cluster_account1 {
@@ -18,9 +18,9 @@ graph {
   loginidX;
   emailC [shape=box];
 
-  loginidZ -- emailA [CONFIRMED_LOOK];
-  loginidZ -- emailB [INCREDIBLE_LOOK];
-  loginidY -- emailB [CREDIBLE_LOOK];
-  loginidX -- emailC [INCREDIBLE_LOOK];
+  loginidZ -> emailA [CONFIRMED_LOOK];
+  loginidY -> emailB [CREDIBLE_LOOK];
+  loginidX -> emailC [INCREDIBLE_LOOK];
 
 }
+

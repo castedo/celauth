@@ -1,0 +1,16 @@
+#include "celauth.dot.h"
+
+digraph {
+  rankdir=LR;
+
+  subgraph cluster_account1 {
+    ACCOUNT_LOOK;
+    label="Account 1";
+    loginidX;
+  }
+  emailC [shape=box];
+
+  loginidX -> emailC [CREDIBLE_LOOK];
+
+}
+

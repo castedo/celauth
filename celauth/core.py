@@ -91,6 +91,8 @@ class CelRegistry(object):
         return CelLogin(self._store, loginid)
 
     def _equiv_loginids(self, loginid):
+        if not loginid:
+            return []
         account = self._store.account(loginid)
         return self._store.loginids(account) if account else [loginid]
 
