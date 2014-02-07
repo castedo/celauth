@@ -14,13 +14,6 @@ class OpenIDChoices(object):
         return [x[1] for x in self.data]
     def urls_by_id(self, id_prefix=''):
         return dict( (id_prefix + x[0], x[2]) for x in self.data )
-    def credible_email(self, claimed_id, email_address):
-        netloc = urlparse.urlparse(claimed_id).netloc
-        for x in self.data:
-            provider = x[2]
-            if netloc == urlparse.urlparse(provider).netloc:
-                return True
-        return False
 
 OPENID_PROVIDERS = OpenIDChoices([
   ('google',        'Google',        'https://www.google.com/accounts/o8/id'),
@@ -47,8 +40,7 @@ class TestOpenIDHelper:
             user_url = urlparse.ParseResult(*urlp).geturl() 
         else:
             email = None
-        credible = (urlparse.urlparse(user_url).netloc == 'example.com')
-        self.case = OpenIDCase(user_url, user_url, email, credible)
+        self.case = OpenIDCase(user_url, user_url, email)
         return return_url
 
     def make_case(self, request):
@@ -106,8 +98,7 @@ class LiveOpenIDHelper:
             if ax_response:
                 email = ax_response.getSingle(EMAIL_AX_TYPE_URI, email)
 
-            credible = OPENID_PROVIDERS.credible_email(response.identity_url, email)
-            return OpenIDCase(response.identity_url, response.getDisplayIdentifier(), email, credible)
+            return OpenIDCase(response.identity_url, response.getDisplayIdentifier(), email)
         return response.message or "Internal openid library error" #should throw exception
 
 

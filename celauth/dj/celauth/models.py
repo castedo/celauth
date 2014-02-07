@@ -38,7 +38,6 @@ class OpenID(models.Model):
     display_id = models.URLField(max_length=255)
     account = models.PositiveIntegerField(blank=True, null=True, db_index=True)
     email = models.ForeignKey(EmailAddress, blank=True, null=True)
-    credible = models.BooleanField(default=False)
     confirmed = models.BooleanField(default=False)
 
     def __unicode__(self):
@@ -85,10 +84,6 @@ class DjangoCelModelStore(object):
         assert loginid
         return [loginid.email.address] if loginid.email and loginid.confirmed else []
 
-    def addresses_credible(self, loginid):
-        assert loginid
-        return [loginid.email.address] if loginid.email and loginid.credible else []
-
     def is_confirmed_claim(self, loginid, address):
         assert loginid
         return loginid.email and loginid.email.address == address and loginid.confirmed
@@ -111,21 +106,11 @@ class DjangoCelModelStore(object):
                                     display_id = openid_case.display_id)
         return ret
 
-    def claim(self, loginid, email_address, credible):
+    def claim(self, loginid, email_address):
         assert loginid
         email = self._get_email_address(email_address)
         loginid.email = email
-        if credible:
-            loginid.credible = True 
-            loginid.save()
-
-    def disclaim(self, loginid, email_address):
-        assert loginid
-        if loginid.email and loginid.email.address == email_address:
-            loginid.email = None
-            loginid.credible = False
-            loginid.confirmed = False
-            loginid.save()
+        loginid.save()
 
     def save_confirmation_code(self, code, email_address):
         expire = datetime.utcnow() + timedelta(hours=12)
@@ -141,7 +126,6 @@ class DjangoCelModelStore(object):
                 return False
             assert loginid.email == rec.email
             if loginid.email == rec.email:
-                loginid.credible = True
                 loginid.confirmed = True
                 loginid.save()
                 return loginid.email.address
@@ -188,10 +172,6 @@ class DjangoCelModelStore(object):
         openid.account = self._accountant.create_account(self.addresses(openid))
         openid.save()
         return openid.account
-
-    def has_incredible_claims(self, openid):
-        assert openid
-        return openid.email and not openid.credible
 
     def _get_email_address(self, address):
         ret, new = EmailAddress.objects.get_or_create(pk=address)

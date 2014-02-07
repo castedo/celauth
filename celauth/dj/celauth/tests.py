@@ -90,23 +90,6 @@ class BasicTest(CelDjTestCase):
 
         self.logout()
 
-    def test_confirmation(self):
-        response = self.login_as('org', 'dude', 'dude', '/there')
-        self.assertContains(response, "confirmation code")
-        self.assertContains(response, "dude@example.org")
-        response = self.follow_email_confirmation_link()
-        self.assertContains(response, "Create new account")
-
-        data = { 'next':'/there' }
-        path = reverse('celauth:create_account')
-        response = self.client.post(path, data, HTTP_HOST='testserver')
-        self.assertRedirects(response, "/there", target_status_code=404)
-
-        response = self.client.get(reverse('celauth:default'))
-        self.assertContains(response, "dude@example.org")
-
-        self.logout()
-
 class ExistingAccountTests(CelDjTestCase):
         def setUp(self):
             self.new_account('com', 'myid', 'mybox')

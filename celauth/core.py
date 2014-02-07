@@ -52,28 +52,26 @@ class CelLogin(object):
     def addresses_joinable(self):
         if self.account:
             return []
-        credibles = self._store.addresses_credible(self._loginid)
-        return [a for a in credibles if not self._store.is_free_address(a)]
+        addresses = self._store.addresses(self._loginid)
+        return [a for a in addresses if not self._store.is_free_address(a)]
 
     def confirmation_required(self):
         for a in self._store.addresses_not_confirmed(self._loginid):
             if self._store.assigned_account(a):
                 return True
-        return self._store.has_incredible_claims(self._loginid)
+        return False
 
     def can_create_account(self):
         if self.account:
             return False
         if self.addresses_joinable():
             return False
-        if self._store.has_incredible_claims(self._loginid):
-            return False
-        return bool(self._store.addresses_credible(self._loginid))
+        return bool(self._store.addresses(self._loginid))
 
     def create_account(self):
         account = self._store.create_account(self._loginid)
         assert account
-        for addr in self._store.addresses_credible(self._loginid):
+        for addr in self._store.addresses(self._loginid):
             if self._store.is_free_address(addr):
                 self._store.assign(addr, account)
 
@@ -92,8 +90,8 @@ class CelRegistry(object):
         account = self._store.account(loginid)
         return self._store.loginids(account) if account else [loginid]
 
-    def _make_claim(self, loginid, email_address, credible):
-        self._store.claim(loginid, email_address, credible)
+    def _make_claim(self, loginid, email_address):
+        self._store.claim(loginid, email_address)
         # os.urandom(5) will produce about 1 trillion possibilities
         if not self._store.is_confirmed_claim(loginid, email_address):
             self._send_code(email_address)
@@ -126,7 +124,7 @@ class CelRegistry(object):
         address = normalize_email(openid_case.email)
         new_loginid = self._store.note_openid(openid_case)
         if address and address not in addresses_to_skip:
-            self._make_claim(new_loginid, address, openid_case.credible)
+            self._make_claim(new_loginid, address)
         return new_loginid
 
     def _join_logins(self, loginid, new_loginid):
@@ -208,7 +206,7 @@ class AuthGate():
     def claim(self, email_address):
         address = normalize_email(email_address)
         if self.loginid:
-            self._registry._make_claim(self.loginid, address, False)
+            self._registry._make_claim(self.loginid, address)
         else:
             self._registry._send_code(address)
 

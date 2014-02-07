@@ -52,7 +52,6 @@ class TestCelRegistryStore(object):
         self.claims = dict()
         """Mapping from loginids to addresses"""
 
-        self.credibles = set() # of loginids
         self.confirms = set() # of loginids
 
     def all_uris_by_account(self):
@@ -96,11 +95,6 @@ class TestCelRegistryStore(object):
         confirmed = loginid in self.confirms
         return [ address ] if address and confirmed else []
 
-    def addresses_credible(self, loginid):
-        address = self.claims.get(loginid, None)
-        credible = loginid in self.credibles
-        return [ address ] if address and credible else []
-
     def is_confirmed_claim(self, loginid, address):
         return self.claims.get(loginid, None) == address and loginid in self.confirms
 
@@ -116,20 +110,8 @@ class TestCelRegistryStore(object):
         self.loginid2account.setdefault(loginid, None)
         return loginid
 
-    def claim(self, loginid, address, credible):
+    def claim(self, loginid, address):
         self.claims[loginid] = address
-        if credible:
-            self.credibles.add(loginid)
-
-    def disclaim(self, loginid, address):
-        #TODO simplify semantics of disclaim
-        if loginid in self.claims:
-            if self.claims[loginid] == address:
-                del self.claims[loginid]
-                if loginid in self.confirms:
-                     del self.confirms[loginid]
-                if loginid in self.credibles:
-                    del self.credibles[loginid]
 
     def save_confirmation_code(self, code, address):
         assert code not in self.code2address
@@ -141,7 +123,6 @@ class TestCelRegistryStore(object):
             return None
         address = self.code2address[code]
         self.claims[loginid] = address
-        self.credibles.add(loginid)
         self.confirms.add(loginid)
         return address
 
@@ -174,9 +155,6 @@ class TestCelRegistryStore(object):
             self.loginid2account[loginid] = account_num
         return account_num
 
-    def has_incredible_claims(self, loginid):
-        return loginid in self.claims and loginid not in self.credibles
-
 class FakeMailer(object):
     last_code = None
 
@@ -193,10 +171,8 @@ def take_code_from_email():
 
 def openid(tld, name, address=None):
     luri = 'https://example.' + tld + '/' + name
-    credible = (tld == 'com')
     email = address if address else '%s@example.%s' % (name, tld)
-    return OpenIDCase(claimed_id=luri, display_id=luri,
-                      email=email, credible=credible)
+    return OpenIDCase(claimed_id=luri, display_id=luri, email=email)
 
 class CelTestCase(unittest.TestCase):
     def setUp(self):
@@ -211,13 +187,7 @@ class CelTestCase(unittest.TestCase):
         self.assertFalse(self.gate.account)
         self.login_as(loginid)
         self.assertFalse(self.gate.account)
-        if loginid.credible:
-            self.assertFalse(self.gate.confirmation_required())
-        else:
-            self.assertTrue(self.gate.confirmation_required())
-            self.assertFalse(self.gate.can_create_account())
-            self.assertTrue(code_in_email())
-            self.gate.confirm_email(take_code_from_email())
+        self.assertFalse(self.gate.confirmation_required())
         self.assertTrue(self.gate.can_create_account())
         self.gate.create_account()
         self.assertTrue(self.gate.account)
@@ -232,7 +202,7 @@ class CelTestCase(unittest.TestCase):
             frozenset(['mailto:joe@example.com', 'https://example.com/joe']),
                         ]))
 
-    def login_to_assigned(self, loginid):
+    def test_login_to_assigned(self):
         self.store.create_account('mailto:admin@example.org')
         self.store.create_account('mailto:admin@example.com')
         self.assertEqual(self.store.all_uris_by_account(), set([
@@ -240,7 +210,7 @@ class CelTestCase(unittest.TestCase):
             frozenset(['mailto:admin@example.com']),
                         ]))
         self.assertFalse(self.gate.loginid)
-        self.login_as(loginid)
+        self.login_as(openid('com', 'admin'))
         self.assertFalse(self.gate.account)
         self.assertTrue(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
@@ -248,12 +218,6 @@ class CelTestCase(unittest.TestCase):
         self.gate.confirm_email(take_code_from_email())
         self.assertFalse(self.gate.can_create_account())
         self.assertTrue(self.gate.account)
-
-    def test_incredible_email(self):
-        self.login_to_assigned(openid('org', 'admin'))
-
-    def test_credible_email(self):
-        self.login_to_assigned(openid('com', 'admin'))
 
     def test_2nd_account(self):
         self.new_account(openid('com', 'me'))
