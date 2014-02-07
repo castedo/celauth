@@ -46,16 +46,3 @@ class CelSession(object):
     def account_update(self):
         self._store.update()
 
-class CelRegistryBase(object):
-
-    @classmethod
-    def _normalize_email(cls, email):
-        email = email or ''
-        try:
-            email_name, domain_part = email.strip().rsplit('@', 1)
-        except ValueError:
-            pass
-        else:
-            email = '@'.join([email_name, domain_part.lower()])
-        return email
-

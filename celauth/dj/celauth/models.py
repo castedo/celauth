@@ -1,7 +1,6 @@
 
 from datetime import datetime, timedelta
 from django.db import models
-from celauth.session import CelRegistryBase
 
 class OpenIDNonce(models.Model):
     server_url = models.URLField(max_length=255)
@@ -49,7 +48,7 @@ class ConfirmationCode(models.Model):
     code = models.CharField(unique=True, max_length=64)
     expiration = models.DateTimeField()
 
-class DjangoCelRegistry(CelRegistryBase):
+class DjangoCelModelStore(object):
     def __init__(self, accountant):
         self._accountant = accountant
 
@@ -169,8 +168,7 @@ class DjangoCelRegistry(CelRegistryBase):
         return openid.claims.filter(emailclaim__credible=False).exists()
 
     def _get_email_address(self, address):
-        norm = self._normalize_email(address)
-        ret, new = EmailAddress.objects.get_or_create(pk=norm)
+        ret, new = EmailAddress.objects.get_or_create(pk=address)
         return ret
 
     def _get_claim(self, openid, address_rec):

@@ -10,10 +10,10 @@ from django import forms
 from openid.consumer.discover import DiscoveryFailure
 from celauth import OpenIDCase
 from celauth.session import CelSession
-from celauth.core import AuthGate, InvalidConfirmationCode, AddressAccountConflict
+from celauth.core import make_auth_gate, InvalidConfirmationCode, AddressAccountConflict
 from celauth.providers import OPENID_PROVIDERS, facade
 from celauth.dj.celauth import Mailer
-from celauth.dj.celauth.models import DjangoCelRegistry
+from celauth.dj.celauth.models import DjangoCelModelStore
 
 REDIRECT_FIELD_NAME = 'next'
 LOGIN_BUTTON_NAME = 'login'
@@ -22,10 +22,10 @@ assert REDIRECT_FIELD_NAME != LOGIN_BUTTON_NAME
 
 def get_auth_gate(request):
     AccountManager = import_by_path(settings.CEL_ACCOUNTANT)
-    accounts = AccountManager()
     mailer = Mailer(request, 'celauth:confirm_email')
+    registry_store = DjangoCelModelStore(AccountManager())
     SessionStore = import_by_path(settings.CEL_SESSION_STORE)
-    return AuthGate(DjangoCelRegistry(accounts), SessionStore(request), mailer)
+    return make_auth_gate(registry_store, mailer, SessionStore(request))
 
 
 @require_http_methods(["GET", "POST"])

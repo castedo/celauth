@@ -157,13 +157,17 @@ class CelRegistry(object):
         else:
             account = registry.assigned_account(address)
             if account:
-                registry.set_account(self.loginid, account)
+                registry.set_account(loginid, account)
 
+def make_auth_gate(registry_store, mailer, session_store):
+        registry = CelRegistry(registry_store, mailer)
+        session = CelSession(session_store)
+        return AuthGate(registry, session)
 
-class AuthGate(CelRegistry):
-    def __init__(self, cel_registry, session_store, mailer):
-        self._session = CelSession(session_store)
-        CelRegistry.__init__(self, cel_registry, mailer)
+class AuthGate():
+    def __init__(self, cel_registry, cel_session):
+        self._registry = cel_registry
+        self._session = cel_session
 
     @property
     def loginid(self):
@@ -171,37 +175,37 @@ class AuthGate(CelRegistry):
 
     @property
     def account(self):
-        return self.get_login(self.loginid).account if self.loginid else None
+        return self._registry.get_login(self.loginid).account if self.loginid else None
 
     @property
     def _loginids(self):
-        return self._equiv_loginids(self.loginid)
+        return self._registry._equiv_loginids(self.loginid)
 
     def addresses(self):
-        return self._addresses(self._loginids)
+        return self._registry._addresses(self._loginids)
 
     def addresses_pending(self):
-        return self._addresses_pending(self._loginids)
+        return self._registry._addresses_pending(self._loginids)
 
     def addresses_confirmed(self):
-        return self._addresses_confirmed(self._loginids)
+        return self._registry._addresses_confirmed(self._loginids)
 
     def addresses_joinable(self):
         if not self.loginid:
             return None
-        return self.get_login(self.loginid).addresses_joinable()
+        return self._registry.get_login(self.loginid).addresses_joinable()
 
     def disclaim_pending(self):
         for lid in self._loginids:
-            self.get_login(lid).disclaim_pending()
+            self._registry.get_login(lid).disclaim_pending()
 
     def login(self, openid_case):
         """
         Raises:
             AccountConflict
         """
-        new_loginid = self._handle_openid(openid_case, self.addresses())
-        self._join_logins(self.loginid, new_loginid)
+        new_loginid = self._registry._handle_openid(openid_case, self.addresses())
+        self._registry._join_logins(self.loginid, new_loginid)
         self._session.set_loginid(new_loginid)
 
     def logout(self):
@@ -210,14 +214,14 @@ class AuthGate(CelRegistry):
     def claim(self, email_address):
         address = normalize_email(email_address)
         if self.loginid:
-            self._make_claim(self.loginid, address, False)
+            self._registry._make_claim(self.loginid, address, False)
         else:
-            self._send_code(address)
+            self._registry._send_code(address)
 
     def confirmation_required(self):
         if not self.loginid:
             return False
-        return self.get_login(self.loginid).confirmation_required()
+        return self._registry.get_login(self.loginid).confirmation_required()
 
     def confirm_email(self, code):
         """Register that login is confirming email confirmation code.
@@ -226,13 +230,13 @@ class AuthGate(CelRegistry):
             AddressAccountConflict: Email address is already assigned to
                 another acccount.
         """
-        self._handle_confirmation(code, self.loginid)
+        self._registry._handle_confirmation(code, self.loginid)
         self._session.account_update()
 
     def can_create_account(self):
         if not self.loginid:
             return False
-        return self.get_login(self.loginid).can_create_account()
+        return self._registry.get_login(self.loginid).can_create_account()
 
     def create_account(self):
         if not self.loginid:
@@ -241,6 +245,6 @@ class AuthGate(CelRegistry):
             raise AccountAlreadyExists
         if not self.can_create_account():
             raise AuthError("Account can not be created") 
-        self.get_login(self.loginid).create_account()
+        self._registry.get_login(self.loginid).create_account()
         self._session.account_update()
 

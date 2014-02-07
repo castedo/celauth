@@ -9,8 +9,8 @@ formalization of the Claimed Email Login model.
 # use unittest2 to remove Django dependency on Python 2.6 
 from django.utils import unittest
 
-from core import AuthGate
-from session import CelSession, CelRegistryBase
+from core import AuthGate, CelRegistry, CelSession
+from session import CelSession
 from celauth import OpenIDCase
 
 class TestSessionStore(object):
@@ -29,7 +29,7 @@ class TestSessionStore(object):
         """
         pass
 
-class TestCelRegistry(CelRegistryBase):
+class TestCelRegistryStore(object):
     """ Implementation of CEL registry state using simple Python dictionaries and sets
     """
 
@@ -80,20 +80,17 @@ class TestCelRegistry(CelRegistryBase):
         return loginid
 
     def claim(self, loginid, address, credible):
-        assert address == self._normalize_email(address)
         self.claims.add((loginid, address))
         if credible:
             self.credibles.add((loginid, address))
 
-    def disclaim(self, loginid, email_address):
-        address = self._normalize_email(email_address)
+    def disclaim(self, loginid, address):
         claim = (loginid, address)
         self.confirms.discard(claim)
         self.credibles.discard(claim)
         self.claims.discard(claim)
 
-    def save_confirmation_code(self, code, email_address):
-        address = self._normalize_email(email_address)
+    def save_confirmation_code(self, code, address):
         assert code not in self.code2address
         self.code2address[code] = address
 
@@ -159,9 +156,11 @@ def openid(tld, name, address=None):
 
 class CelTestCase(unittest.TestCase):
     def setUp(self):
-        self.registry = TestCelRegistry()
-        self.session = TestSessionStore()
-        self.gate = AuthGate(self.registry, self.session, FakeMailer())
+        self.registry = TestCelRegistryStore()
+        #TODO test with CelRegistry instead of TestCelRegistryStore
+        registry = CelRegistry(self.registry, FakeMailer())
+        session = CelSession(TestSessionStore())
+        self.gate = AuthGate(registry, session)
 
     def login_as(self, loginid):
         self.gate.login(loginid)
