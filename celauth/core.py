@@ -58,31 +58,27 @@ class CelLogin(object):
     def confirmed(self):
         return self._login.confirmed
 
-    def addresses_joinable(self):
+    def must_join_account(self):
         if self.account:
-            return []
-        addresses = self._store.addresses(self._loginid)
-        return [a for a in addresses if not self._store.is_free_address(a)]
+            return False
+        return self.address and not self._store.is_free_address(self.address)
 
     def confirmation_required(self):
-        if self._login.address and not self._login.confirmed:
-            if self._store.assigned_account(self._login.address):
+        if self.address and not self.confirmed:
+            if self._store.assigned_account(self.address):
                 return True
         return False
 
     def can_create_account(self):
         if self.account:
             return False
-        if self.addresses_joinable():
-            return False
-        return bool(self._store.addresses(self._loginid))
+        return self.address and self._store.is_free_address(self.address)
 
     def create_account(self):
         account = self._store.create_account(self._loginid)
         assert account
-        for addr in self._store.addresses(self._loginid):
-            if self._store.is_free_address(addr):
-                self._store.assign(addr, account)
+        if self.address and self._store.is_free_address(self.address):
+            self._store.assign(self.address, account)
 
 class CelRegistry(object):
     def __init__(self, registry_store, mailer):
@@ -104,18 +100,6 @@ class CelRegistry(object):
         code = b32encode(os.urandom(5))
         self._store.save_confirmation_code(code, address)
         self._mailer.send_code(code, address)
-
-    def _addresses(self, loginids):
-        ret = set()
-        for lid in loginids:
-            ret |= set(self._store.addresses(lid))
-        return list(ret)
-
-    def _addresses_confirmed(self, loginids):
-        ret = set()
-        for lid in loginids:
-            ret |= set(self._store.addresses_confirmed(lid))
-        return list(ret)
 
     def remind_pending_claim(self, loginid):
         login = self.get_login(loginid)
@@ -181,27 +165,22 @@ class AuthGate():
         return self._registry.get_login(self.loginid).account if self.loginid else None
 
     @property
-    def _loginids(self):
-        return self._registry._equiv_loginids(self.loginid)
+    def _logins(self):
+        return map(self._registry.get_login, self._registry._equiv_loginids(self.loginid))
 
     def addresses(self):
-        return self._registry._addresses(self._loginids)
+        return list(set([ l.address for l in self._logins ]))
 
     def addresses_pending(self):
-        ret = set()
-        for lid in self._loginids:
-            login = self._registry.get_login(lid)
-            if login.address and not login.confirmed:
-                ret.add(login.address)
-        return list(ret)
+        return list(set([ l.address for l in self._logins if not l.confirmed ]))
 
     def addresses_confirmed(self):
-        return self._registry._addresses_confirmed(self._loginids)
+        return list(set([ l.address for l in self._logins if l.confirmed ]))
 
-    def addresses_joinable(self):
+    def must_join_account(self):
         if not self.loginid:
-            return None
-        return self._registry.get_login(self.loginid).addresses_joinable()
+            return False
+        return self._registry.get_login(self.loginid).must_join_account()
 
     def login(self, openid_case):
         """

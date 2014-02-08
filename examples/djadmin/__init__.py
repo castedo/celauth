@@ -24,15 +24,14 @@ class DjangoUserManager():
             #TODO raise exception if multiple users
             return users[0].id if len(users) == 1 else None
 
-    def create_account(self, email_addresses):
-        assert len(email_addresses) > 0
+    def create_account(self, email_address):
+        assert email_address
         UserModel = django.contrib.auth.get_user_model()
-        existing = UserModel.objects.filter(username__in=email_addresses)
+        existing = UserModel.objects.filter(username=email_address)
         assert not existing
-        existing = UserModel.objects.filter(email__in=email_addresses)
+        existing = UserModel.objects.filter(email=email_address)
         assert not existing
-        address = email_addresses[0]
-        user = UserModel.objects.create_user(address, address)
+        user = UserModel.objects.create_user(email_address, email_address)
         return user.id
 
 class TrivialBackend:

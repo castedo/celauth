@@ -79,15 +79,6 @@ class DjangoCelModelStore(object):
     def account(self, loginid):
         return loginid.account if loginid else None
 
-    def addresses(self, loginid):
-        assert loginid
-        email = loginid.email
-        return [email.address] if email else []
-
-    def addresses_confirmed(self, loginid):
-        assert loginid
-        return [loginid.email.address] if loginid.email and loginid.confirmed else []
-
     def is_free_address(self, address):
         try:
             email = EmailAddress.objects.get(address=address)
@@ -168,7 +159,7 @@ class DjangoCelModelStore(object):
             self.add_address(account, address)
             return account
         openid = loginid
-        openid.account = self._accountant.create_account(self.addresses(openid))
+        openid.account = self._accountant.create_account(openid.address)
         openid.save()
         return openid.account
 

@@ -51,7 +51,7 @@ def login_response(request, gate):
     if gate.confirmation_required():
         return enter_code_response(request, gate)
 
-    if gate.addresses_joinable():
+    if gate.must_join_account():
         return choose_openid_response(request, gate)
 
     if not gate.account:
@@ -103,7 +103,7 @@ def choose_openid_response(request, gate):
         'next_name': REDIRECT_FIELD_NAME,
         'next_url': final_url,
     }
-    if gate.addresses_joinable():
+    if gate.must_join_account():
         return render(request, 'celauth/join_account.html', vals)
     else:
         return render(request, 'celauth/login.html', vals)

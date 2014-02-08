@@ -90,15 +90,6 @@ class TestCelRegistryStore(object):
     def account(self, loginid):
         return self.loginid2account[loginid] if loginid else None
 
-    def addresses(self, loginid):
-        address = self.claims.get(loginid, None)
-        return [ address ] if address else []
-
-    def addresses_confirmed(self, loginid):
-        address = self.claims.get(loginid, None)
-        confirmed = loginid in self.confirms
-        return [ address ] if address and confirmed else []
-
     def is_free_address(self, address):
         return address not in self.address2account.keys()
 
@@ -237,7 +228,7 @@ class CelTestCase(unittest.TestCase):
         self.assertFalse(self.gate.account)
         self.assertFalse(self.gate.confirmation_required())
         self.assertFalse(self.gate.can_create_account())
-        self.assertTrue(self.gate.addresses_joinable())
+        self.assertTrue(self.gate.must_join_account())
         self.assertEqual(self.store.all_uris_by_account(), set([
             frozenset(['mailto:me@example.com', 'https://example.com/me']),
                         ]))
