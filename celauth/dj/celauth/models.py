@@ -2,11 +2,6 @@
 from datetime import datetime, timedelta
 from django.db import models
 
-def delete_registry_data():
-    EmailAddress.objects.all().delete()
-    OpenID.objects.all().delete()
-    ConfirmationCode.objects.all().delete()
-
 class OpenIDNonce(models.Model):
     server_url = models.URLField(max_length=255)
     timestamp  = models.IntegerField()
@@ -118,7 +113,7 @@ class DjangoCelModelStore(object):
             assert loginid
             rec = ConfirmationCode.objects.get(code=code)
             if datetime.utcnow() > rec.expiration:
-                return False
+                return None
             assert loginid.email == rec.email
             if loginid.email == rec.email:
                 loginid.confirmed = True
@@ -155,7 +150,7 @@ class DjangoCelModelStore(object):
         assert loginid
         if isinstance(loginid, str) and loginid.startswith('mailto:'):
             address = loginid[7:]
-            account = self._accountant.create_account([address])
+            account = self._accountant.create_account(address)
             self.add_address(account, address)
             return account
         openid = loginid

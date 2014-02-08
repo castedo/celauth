@@ -1,18 +1,18 @@
 from django.utils import unittest
 from django.utils.module_loading import import_by_path
 from django.conf import settings
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.core.urlresolvers import reverse
 from django.core import mail
 from celauth.tests import CelTestCase, FakeMailer, TestSessionStore
 from celauth import providers
 from celauth.core import make_auth_gate
-from celauth.dj.celauth.models import DjangoCelModelStore, delete_registry_data
+from celauth.dj.celauth.models import DjangoCelModelStore
 
 providers.enable_test_openids()
 
-class DjModelStoreTestCase(CelTestCase):
+class DjModelStoreTestCase(TransactionTestCase, CelTestCase):
     def setUp(self):
         AccountManager = import_by_path(settings.CEL_ACCOUNTANT)
         self.store = DjangoCelModelStore(AccountManager())
@@ -21,7 +21,6 @@ class DjModelStoreTestCase(CelTestCase):
     def tearDown(self):
         self.store = None
         self.gate = None
-        delete_registry_data()
 
 class CelDjTestCase(TestCase):
     def login_as(self, tld, id, email_id, next_url=None):

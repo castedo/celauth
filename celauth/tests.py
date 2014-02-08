@@ -9,8 +9,8 @@ formalization of the Claimed Email Login model.
 # use unittest2 to remove Django dependency on Python 2.6 
 from django.utils import unittest
 
-from core import make_auth_gate
-from session import CelSession
+from celauth.core import make_auth_gate
+from celauth.session import CelSession
 from celauth import OpenIDCase
 
 class TestSessionStore(object):
@@ -114,12 +114,10 @@ class TestCelRegistryStore(object):
         self.code2address[code] = address
 
     def confirm_email(self, loginid, code):
-        if code not in self.code2address:
-            #TODO should raise exception
-            return None
-        address = self.code2address[code]
-        self.claims[loginid] = address
-        self.confirms.add(loginid)
+        address = self.code2address.get(code, None)
+        if address:
+            self.claims[loginid] = address
+            self.confirms.add(loginid)
         return address
 
     def assigned_account(self, address):

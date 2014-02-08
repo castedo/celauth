@@ -87,3 +87,5 @@ CEL_SESSION_STORE = 'celauth.dj.celauth.DjangoCelSessionStore'
 
 CONFIRM_EMAIL_FROM = 'noreply@example.com'
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
