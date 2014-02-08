@@ -40,6 +40,10 @@ class OpenID(models.Model):
     email = models.ForeignKey(EmailAddress, blank=True, null=True)
     confirmed = models.BooleanField(default=False)
 
+    @property
+    def address(self):
+        return self.email.address if self.email else None
+
     def __unicode__(self):
         return self.display_id
 
@@ -68,6 +72,10 @@ class DjangoCelModelStore(object):
     def loginids(self, account):
         return OpenID.objects.filter(account=account)
 
+    def get_login(self, loginid):
+        assert loginid
+        return loginid
+
     def account(self, loginid):
         return loginid.account if loginid else None
 
@@ -75,10 +83,6 @@ class DjangoCelModelStore(object):
         assert loginid
         email = loginid.email
         return [email.address] if email else []
-
-    def addresses_not_confirmed(self, loginid):
-        assert loginid
-        return [loginid.email.address] if loginid.email and not loginid.confirmed else []
 
     def addresses_confirmed(self, loginid):
         assert loginid
@@ -151,11 +155,6 @@ class DjangoCelModelStore(object):
             email.save()
             return True
         return account == email.account
-
-    def remove_address(self, account, address):
-        email = self._get_email_address(address)
-        if account == email.account:
-            email.account = None
 
     def set_account(self, loginid, account):
         loginid.account = account

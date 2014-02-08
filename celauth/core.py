@@ -44,14 +44,19 @@ class CelLogin(object):
     def __init__(self, registry_store, loginid):
         self._store = registry_store
         self._loginid = loginid
+        self._login = self._store.get_login(loginid)
 
     @property
     def account(self):
-        return self._store.account(self._loginid)
+        return self._login.account
 
     @property
     def address(self):
-        return self._store.get_address(self._loginid)
+        return self._login.address
+
+    @property
+    def confirmed(self):
+        return self._login.confirmed
 
     def addresses_joinable(self):
         if self.account:
@@ -60,8 +65,8 @@ class CelLogin(object):
         return [a for a in addresses if not self._store.is_free_address(a)]
 
     def confirmation_required(self):
-        for a in self._store.addresses_not_confirmed(self._loginid):
-            if self._store.assigned_account(a):
+        if self._login.address and not self._login.confirmed:
+            if self._store.assigned_account(self._login.address):
                 return True
         return False
 
@@ -104,13 +109,6 @@ class CelRegistry(object):
         ret = set()
         for lid in loginids:
             ret |= set(self._store.addresses(lid))
-        return list(ret)
-
-    def _addresses_pending(self, loginids):
-        ret = set()
-        for lid in loginids:
-            ret |= set(self._store.addresses_not_confirmed(lid))
-        #TODO fix bug: should return addresss not confirmed by all loginids, not any one loginid
         return list(ret)
 
     def _addresses_confirmed(self, loginids):
@@ -190,7 +188,12 @@ class AuthGate():
         return self._registry._addresses(self._loginids)
 
     def addresses_pending(self):
-        return self._registry._addresses_pending(self._loginids)
+        ret = set()
+        for lid in self._loginids:
+            login = self._registry.get_login(lid)
+            if login.address and not login.confirmed:
+                ret.add(login.address)
+        return list(ret)
 
     def addresses_confirmed(self):
         return self._registry._addresses_confirmed(self._loginids)

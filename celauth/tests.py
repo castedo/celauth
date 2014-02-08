@@ -30,12 +30,24 @@ class TestSessionStore(object):
         pass
 
 class TestCelLoginStore(object):
-    """ Implementation of CEL loginid state using basic Python types
+    """ View into CEL store state per login
     """
-    def __init__(self, loginid, account, address):
-        self.loginid = loginid
-        self.account = account
-        self.address = address
+    def __init__(self, store, loginid):
+        assert store and loginid
+        self._store = store
+        self._loginid = loginid
+
+    @property
+    def account(self):
+        return self._store.loginid2account.get(self._loginid, None)
+
+    @property
+    def address(self):
+        return self._store.claims.get(self._loginid, None)
+
+    @property
+    def confirmed(self):
+        return self._loginid in self._store.confirms
 
 class TestCelRegistryStore(object):
     """ Implementation of CEL registry state using simple Python dictionaries
@@ -73,9 +85,7 @@ class TestCelRegistryStore(object):
 
     def get_login(self, loginid):
         assert loginid
-        address = self.claims.get(loginid, None)
-        account = self.loginid2account.get(loginid, None)
-        return TestCelLoginStore(loginid, account, address)
+        return TestCelLoginStore(self, loginid)
 
     def account(self, loginid):
         return self.loginid2account[loginid] if loginid else None
@@ -83,12 +93,6 @@ class TestCelRegistryStore(object):
     def addresses(self, loginid):
         address = self.claims.get(loginid, None)
         return [ address ] if address else []
-
-    def addresses_not_confirmed(self, loginid):
-        #TODO move this logic up into CelRegistry
-        address = self.claims.get(loginid, None)
-        confirmed = loginid in self.confirms
-        return [address] if address and not confirmed else []
 
     def addresses_confirmed(self, loginid):
         address = self.claims.get(loginid, None)
@@ -138,10 +142,6 @@ class TestCelRegistryStore(object):
             self.address2account[address] = account
             return True
         return account == self.address2account[address]
-
-    def remove_address(self, account, address):
-        if address == self.address2account.get(account, None):
-            del self.address2account[account]
 
     def set_account(self, loginid, account):
         self.loginid2account[loginid] = account
