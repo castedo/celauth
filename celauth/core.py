@@ -133,18 +133,17 @@ class CelRegistry(object):
             self._store.set_account(loginid, new_account)
 
     def _handle_confirmation(self, code, loginid):
-        registry = self._store
-        address = registry.confirm_email(loginid, code)
+        address = self._store.confirm_email(loginid, code)
         if not address:
             raise InvalidConfirmationCode
         account = self._store.account(loginid)
         if account:
-            if not registry.add_address(account, address):
+            if not self._store.add_address(account, address):
                 raise AddressAccountConflict
         else:
-            account = registry.assigned_account(address)
+            account = self._store.assigned_account(address)
             if account:
-                registry.set_account(loginid, account)
+                self._store.set_account(loginid, account)
 
 def make_auth_gate(registry_store, mailer, session_store):
         registry = CelRegistry(registry_store, mailer)
@@ -190,7 +189,7 @@ class AuthGate():
         new_loginid = self._registry._handle_openid(openid_case)
         self._registry._join_logins(self.loginid, new_loginid)
         self._registry.remind_pending_claim(new_loginid)
-        self._session.set_loginid(new_loginid)
+        self._session.loginid = new_loginid
 
     def logout(self):
         self._session.clear()

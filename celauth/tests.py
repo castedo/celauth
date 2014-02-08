@@ -17,7 +17,7 @@ class TestSessionStore(object):
     """A 'session store' saves the session specific state of CelSession
     """
     def __init__(self, request=None):
-        self._vals = {'loginid': None, 'address': None}
+        self._vals = dict()
 
     @property
     def vals(self):

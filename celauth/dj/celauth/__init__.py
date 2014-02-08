@@ -33,8 +33,7 @@ class DjangoCelSessionStore(object):
 
     @property
     def vals(self):
-        vals = {'loginid': None, 'address': None}
-        self.request.session.setdefault('authgate', vals)
+        self.request.session.setdefault('authgate', dict())
         return self.request.session['authgate']
 
     def update(self):
@@ -46,7 +45,7 @@ class DjangoAuthCelSessionStore(DjangoCelSessionStore):
         DjangoCelSessionStore.__init__(self, request)
 
     def update(self):
-        loginid = self.vals['loginid']
+        loginid = self.vals.get('loginid', None)
         user_id = loginid.account if loginid else None
         if self.request.user.is_authenticated():
             if user_id != self.request.user.id:
