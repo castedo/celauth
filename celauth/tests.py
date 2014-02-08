@@ -17,11 +17,11 @@ class TestSessionStore(object):
     """A 'session store' saves the session specific state of CelSession
     """
     def __init__(self, request=None):
-        self._loginids = []
+        self._vals = {'loginid': None, 'address': None}
 
     @property
-    def loginids(self):
-        return self._loginids
+    def vals(self):
+        return self._vals
 
     def update(self):
         """Let implementation follow up with database updates, login/logouts, etc...

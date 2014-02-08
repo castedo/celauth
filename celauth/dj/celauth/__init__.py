@@ -30,13 +30,12 @@ class DjangoCelSessionStore(object):
 
     def __init__(self, request):
         self.request = request
+        vals = {'loginid': None, 'address': None}
+        self.request.session.setdefault('authgate', vals)
 
     @property
-    def loginids(self):
-        # Django sessions seem to sometimes remove empty lists
-        # so the empty list is added here instead of __init__
-        self.request.session.setdefault('loginids', [])
-        return self.request.session['loginids']
+    def vals(self):
+        return self.request.session['authgate']
 
     def update(self):
         self.request.session.save()
